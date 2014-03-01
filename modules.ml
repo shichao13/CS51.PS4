@@ -15,25 +15,19 @@ sig
 end
 
 (* Write a module called Math that implements the MATH signature above *)
-module Math : MATH -
+
+module Math : MATH =
     struct
-        let pi - 4. *. atan 1.
-        let cos - cos
-        let sin - sin
-        let sum - (+.)
-        let rec max (lst : float list) -
+        let pi = 4. *. atan 1.
+        let cos = cos
+        let sin = sin
+        let sum = (+.)
+        let max (lst : float list) : float option =
             match lst with
-            | [] -> 0
-            | x :: xs' ->
-                let rec maxloop (xs : float list) (curmax : int) =
-                    match xs with
-                    | [] -> curmax
-                    | y :: ys ->
-                        if (y > curmax) then:
-                            maxloop ys y
-                        else:
-                            maxloop ys curmax
-    end
+            | [] -> None
+            | x :: xs' -> 
+                Some (List.fold_right ~f:(fun acc x -> if x > acc then x else acc) ~init:(Float.of_int Int.min_value) lst)
+
 
 (*>* Problem 1.1 *>*)
 
@@ -45,11 +39,10 @@ module Math : MATH -
 
 module type LIST =
 sig
-    type 'a t
-    exception Empty
-    val length: 'a t -> int
-    val fold_right: 'a t -> f:('a -> 'b -> 'b) -> init:'b -> 'b
-    val rev: 'a t -> 'a t
+    type 'a t = 'a list
+    val length : 'a t -> int
+    val fold_right : 'a t -> f:('a -> 'b -> 'b) -> init:'b -> 'b
+    val rev : 'a t -> 'a t
 end
 
 
@@ -57,14 +50,13 @@ end
  * can uncomment them *)
 
 
-(*
+
 module MyList = (List : LIST);;
 
 let _ =
     assert(MyList.length [1;2;3] = 3);
     assert(MyList.fold_right ~f:(+) ~init:0 [1;2;3] = 6);
-    assert(MyList.rev [1;2;3] = [3;2;1])
-*)
+    assert(MyList.rev [1;2;3] = [3;2;1]);;
 
 
 (* Even with your signature, the following line should never compile:
@@ -167,16 +159,13 @@ module TFRob = (Rob : TF)
 module type TF =
 sig
     type info
-
-    val hometown: string
-    val year: int
-    val concentration: string
-
-    val grade_assignment: assignment -> string
-    val favorite_function: float -> float -> float
-
-    val print_info: unit
+    val info : info
+    val hometown : string
+    val favorite_function : float -> float -> float
+    val print_info : unit -> unit
+    val fold : int list -> init:int -> int
 end
+
 
 (*>* Problem 1.3 *>*)
 
