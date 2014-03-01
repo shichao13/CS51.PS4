@@ -804,24 +804,22 @@ struct
       | Odd -> false
       | Even -> true)
 
-  let simplify (bal : balance) (node : elt) (l : tree) (r : tree) (side : bool)
-                  : elt * queue =
-    if side then
-      let (bot, Tree myTreeQL) = get_last r in
-      (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
-    else
-      let (bot, Tree myTreeQL) = get_last l in
-      (bot, Tree (TwoBranch(bal, node, myTreeQL, r)))
-
   let rec get_last (t : tree) : elt * queue =
     match t with
-    | Leaf e -> e
+    | Leaf e -> (e, Tree())
     | OneBranch (p, c) -> c
     | TwoBranch (bal, node, l, r) ->
       (match bal with
-      | Even -> simplify bal node l r true
-      | Odd  -> simplify bal node l r (get_odd_side l r)
-      )
+      | Even ->
+        let (bot, Tree myTreeQL) = get_last r in
+        (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+      | Odd  -> 
+        if get_odd_side l r then
+          let (bot, Tree myTreeQL) = get_last r in
+          (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+        else
+          let (bot, Tree myTreeQL) = get_last l in
+          (bot, Tree (TwoBranch(bal, node, myTreeQL, r))))
 
   (* Implements the algorithm described in the writeup. You must finish this
    * implementation, as well as the implementations of get_last and fix, which
