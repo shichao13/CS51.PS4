@@ -300,7 +300,7 @@ struct
     | Branch (Leaf, x, Leaf) ->
       (match x with
       | _ :: tl -> getmin (Branch (Leaf, tl, Leaf))
-      | [x] -> x)
+      | [x'] -> x')
     | Branch (left, _, _) -> getmin left
     | Leaf -> raise EmptyTree
 
@@ -531,6 +531,9 @@ struct
     test_add ();
     test_take ();
     ()*)
+
+  let run_tests () =
+    raise ImplementMe
 end
 
 (* IMPORTANT: Don't forget to actually *call* run_tests, as with
@@ -554,11 +557,12 @@ struct
   (* Implement the remainder of the module! *)
   type elt = C.t
 
-  type tree = Leaf | Branch of tree * elt list * tree
+  type tree = T.tree
+  (* Leaf | Branch of tree * elt list * tree *)
   
   type queue = Empty | Tree of tree
 
-  let empty = Leaf
+  let empty = T.empty
 
   let is_empty (q : queue) : bool =
     match q with
@@ -567,8 +571,9 @@ struct
 
   let add (e: elt) (q: queue) : queue =
     match q with
-    | Empty -> Tree (Branch (Leaf, [e], Leaf))
-    | Tree t -> T.insert e t
+    | Empty -> Tree (T.insert e empty)
+    (* Tree (Branch (Leaf, [e], Leaf)) *)
+    | Tree t -> Tree (T.insert e t)
     (*
     match q with
     | Leaf -> (Leaf, e, Leaf)
@@ -591,6 +596,7 @@ struct
       | hd::_ -> T.delete hd t 
     
   let run_tests unit : unit =
+    raise ImplementMe
   (* copy in from queue once done! *)
 
 end
