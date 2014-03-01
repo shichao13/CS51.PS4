@@ -562,7 +562,7 @@ struct
   
   type queue = Empty | Tree of tree
 
-  let empty = T.empty
+  let empty = Empty
 
   let is_empty (q : queue) : bool =
     match q with
@@ -571,7 +571,7 @@ struct
 
   let add (e: elt) (q: queue) : queue =
     match q with
-    | Empty -> Tree (T.insert e empty)
+    | Empty -> Tree (T.insert e T.empty)
     (* Tree (Branch (Leaf, [e], Leaf)) *)
     | Tree t -> Tree (T.insert e t)
     (*
@@ -590,10 +590,14 @@ struct
     match q with
     | Empty -> raise QueueEmpty
     | Tree t ->
-      let (elts, t') = T.pull_min t in
+      let e = T.getmin t in
+      (e,  Tree (T.delete e t))
+
+      (*
       match elts with
       | [] -> raise QueueEmpty
       | hd::_ -> T.delete hd t 
+      *)
     
   let run_tests unit : unit =
     raise ImplementMe
@@ -707,7 +711,7 @@ struct
    * match in *)
   let get_top (t : tree) : elt =
     match t with
-    | Leaf (e) -> e
+    | Leaf e -> e
     | OneBranch (e, _) -> e
     | TwoBranch (_, e, _, _) -> e
 
@@ -723,20 +727,26 @@ struct
     | Greater, _, _             -> 2
     | _, Greater, _             -> 3
     | _, _, Greater             -> 1
-    | _, _, _                   -> 1    
+    | _, _, _                   -> 1
+
+  let top_switch (node : elt) (t : tree) : tree =
+    match t with
+    | Leaf e -> Leaf node
+    | OneBranch (e1, e2) -> OneBranch (node, e2)
+    | TwoBranch (bal, e, l, r) -> TwoBranch (bal, node, l, r)
 
   let rec fix (t : tree) : tree =
     match t with
-    | Leaf (e) -> t
+    | Leaf e -> t
     | OneBranch (p, c) -> 
-      match C.compare p c
+      (match C.compare p c with
       | Greater -> OneBranch(c,p)
-      | _ -> t
+      | _ -> t)
     | TwoBranch (bal, node, l, r) ->
-      match child_compare node (get_top l) (get_top r) with
+      (match child_compare node (get_top l) (get_top r) with
       | 1 -> t
       | 2 -> TwoBranch(bal, (get_top l), fix (top_switch node l), r)
-      | 3 -> TwoBranch(bal, (get_top r), l, fix (top_switch node r))
+      | 3 -> TwoBranch(bal, (get_top r), l, fix (top_switch node r)))
 
   let extract_tree (q : queue) : tree =
     match q with
@@ -763,22 +773,22 @@ struct
     | Leaf _ -> r
     | OneBranch (_, _) -> l
     | TwoBranch (bal, _, _, _) ->
-      match bal with
+      (match bal with
       | Odd -> l
-      | Even -> r
+      | Even -> r)
+
+  let rec find_last (t : tree) : elt =
+    match t with
+    | Leaf e -> e
+    | OneBranch (p, c) -> c
+    | TwoBranch (bal, node, l, r) ->
+      (match bal with
+      | Even -> find_last r
+      | Odd  -> find_last (get_odd_side l r))
 
   let rec get_last (t : tree) : elt * queue =
     let last = (find_last t) in
     (last, (T.delete last t))
-
-  let rec find_last (t : tree) : elt =
-    match t with
-    | Leaf (e) -> e
-    | OneBranch (p, c) -> c
-    | TwoBranch (bal, node, l, r) ->
-      match bal with
-      | Even -> find_last r
-      | Odd  -> find_last (get_odd_side l r)
 
   (* Implements the algorithm described in the writeup. You must finish this
    * implementation, as well as the implementations of get_last and fix, which
@@ -804,7 +814,12 @@ struct
        | Empty -> (e, Tree (fix (OneBranch (last, get_top t1))))
        | Tree t2' -> (e, Tree (fix (TwoBranch (Odd, last, t1, t2')))))
     (* Implement the odd case! *)
-    | TwoBranch (Odd, e, t1, t2) -> raise ImplementMe
+    | TwoBranch (Odd, e, t1, t2) ->
+      let (last, q') = get_last t1 in
+      (match q' with
+        | Tree (Leaf e') -> (e, Tree( fix (TwoBranch (Even, last, Tree (e'), t2))))
+        | Tree t' -> (e, Tree (fix (TwoBranch (Even, last, t', t2))))
+      )
 
   let run_tests () = raise ImplementMe
 end
