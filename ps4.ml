@@ -806,8 +806,8 @@ struct
 
   let rec get_last (t : tree) : elt * queue =
     match t with
-    | Leaf e -> (e, Tree())
-    | OneBranch (p, c) -> c
+    | Leaf e -> (e, Empty)
+    | OneBranch (p, c) -> (c, Tree(Leaf p))
     | TwoBranch (bal, node, l, r) ->
       (match bal with
       | Even ->
@@ -937,6 +937,32 @@ let selectionsort = sort list_module
  * a COMPARABLE module as an argument, and allows for sorting on the
  * type defined by that module. You should use your BinaryHeap module.
  *)
+
+module type SORT =
+sig
+  type c
+  val sort : c list -> c list
+end
+
+
+module Hsort(C : COMPARABLE) : SORT with type c = C.t =
+struct
+
+  type c = C.t
+
+  module Bheap = (BinaryHeap(C) : PRIOQUEUE with type elt = C.t)
+
+  let sort (lst : c list) : c list =
+    let rec extractor pq lst =
+      if Bheap.is_empty pq then lst else
+      let (x, pq') = Bheap.take pq in
+      extractor pq' (x::lst) in
+    let pq = List.fold_right ~f:Bheap.add ~init:Bheap.empty lst in
+    List.rev (extractor pq [])
+end
+
+
+
 
 (*>* Problem N.1 *>*)
 (* Challenge problem:
