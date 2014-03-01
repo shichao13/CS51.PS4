@@ -766,6 +766,8 @@ struct
    * down into a new node at the bottom of the tree. *This* is the node
    * that we want you to return.
    *)
+
+  (*
   let get_odd_side (l : tree) (r : tree) : tree =
     match l with
     (* If leaf, the other side is one branch (we'll never run into a starting
@@ -789,6 +791,37 @@ struct
   let rec get_last (t : tree) : elt * queue =
     let last = (find_last t) in
     (last, (T.delete last t))
+  *)
+
+  let get_odd_side (l : tree) (r : tree) : bool =
+    match l with
+    (* If leaf, the other side is one branch (we'll never run into a starting
+    tree. So, we just set it to the right side of the tree. *)
+    | Leaf _ -> true
+    | OneBranch (_, _) -> false
+    | TwoBranch (bal, _, _, _) ->
+      (match bal with
+      | Odd -> false
+      | Even -> true)
+
+  let simplify (bal : balance) (node : elt) (l : tree) (r : tree) (side : bool)
+                  : elt * queue =
+    if side then
+      let (bot, Tree myTreeQL) = get_last r in
+      (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+    else
+      let (bot, Tree myTreeQL) = get_last l in
+      (bot, Tree (TwoBranch(bal, node, myTreeQL, r)))
+
+  let rec get_last (t : tree) : elt * queue =
+    match t with
+    | Leaf e -> e
+    | OneBranch (p, c) -> c
+    | TwoBranch (bal, node, l, r) ->
+      (match bal with
+      | Even -> simplify bal node l r true
+      | Odd  -> simplify bal node l r (get_odd_side l r)
+      )
 
   (* Implements the algorithm described in the writeup. You must finish this
    * implementation, as well as the implementations of get_last and fix, which
@@ -817,7 +850,7 @@ struct
     | TwoBranch (Odd, e, t1, t2) ->
       let (last, q') = get_last t1 in
       (match q' with
-        | Tree (Leaf e') -> (e, Tree( fix (TwoBranch (Even, last, Tree (e'), t2))))
+        | Tree (Leaf e') -> (e, Tree( fix (TwoBranch (Even, last, Leaf (e'), t2))))
         | Tree t' -> (e, Tree (fix (TwoBranch (Even, last, t', t2))))
       )
 
