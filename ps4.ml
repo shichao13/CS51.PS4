@@ -502,8 +502,34 @@ struct
     let hd :: tl = q in
     (hd, tl)
 
+  (* to Mike: will finish writing later *)
+  let test_is_empty () =
+      let x = C.generate () in
+      let x2 = C.generate_lt x () in
+      let x3 = C.generate_lt x2 () in
+      let x4 = C.generate_lt x3 () in
+      assert (getmax (insert x4 (insert x3 (insert x2 (insert x empty)))) = x)
 
-  let run_tests () = raise ImplementMe
+  let test_add () =
+      let x = C.generate () in
+      let x2 = C.generate_gt x () in
+      let x3 = C.generate_gt x2 () in
+      let x4 = C.generate_gt x3 () in
+      assert (getmin (insert x2 (insert x4 (insert x (insert x3 empty)))) = x)
+
+  let test_take () =
+      let x = C.generate () in
+      let x2 = C.generate_lt x () in
+      let x3 = C.generate_lt x2 () in
+      let x4 = C.generate_lt x3 () in
+      let after_ins = insert x4 (insert x3 (insert x2 (insert x empty))) in
+      assert (delete x (delete x4 (delete x3 (delete x2 after_ins))) = empty)
+
+  let run_tests () =
+    test_is_empty ();
+    test_add ();
+    test_take ();
+    ()
 end
 
 (* IMPORTANT: Don't forget to actually *call* run_tests, as with
@@ -515,7 +541,7 @@ end
  * Luckily, you should be able to use *a lot* of your code from above! *)
 
 (* Uncomment when you finish! *)
-(*
+
 module TreeQueue(C : COMPARABLE) : PRIOQUEUE with type elt = C.t=
 struct
   exception QueueEmpty
@@ -525,9 +551,20 @@ struct
   module T = (BinSTree(C) : BINTREE with type elt = C.t)
 
   (* Implement the remainder of the module! *)
+  type queue = elt list
+
+  val empty : []
+
+  val is_empty : queue -> bool
+
+  val add : elt -> queue -> queue
+
+  val take : queue -> elt * queue
+
+  val run_tests : unit -> unit
 
 end
-*)
+
 
 (*****************************************************************************)
 (*                               Part 4                                      *)
