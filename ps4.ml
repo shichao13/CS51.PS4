@@ -192,16 +192,19 @@ struct
    *
    * Hint: use C.compare. See delete for inspiration
    *)
+
   let rec insert (x : elt) (t : tree) : tree =
-    match tree with
-    | Leaf -> (Leaf, x, Leaf)
+    match t with
+    | Leaf -> Branch (Leaf, [x], Leaf)
     | Branch (left, elts, right) ->
-      let hd :: tl = elts in
-      let diff = C.compare x hd in
-      match diff with
-      | Less -> (insert x left, elts, right)
-      | Equal -> (left, x :: elts, right)
-      | Greater -> (left, elts, insert x right)
+      match elts with
+      | [] -> Branch (left, [x], right)
+      | hd::tl ->
+        match C.compare x hd with
+          | Less -> Branch (insert x left, elts, right)
+          | Equal -> Branch (left, x :: elts, right)
+          | Greater -> Branch (left, elts, insert x right)
+
 
 (*>* Problem 2.1 *>*)
 
@@ -210,29 +213,27 @@ struct
    * that doesn't necessarily mean that x itself is in the
    * tree.
    *)
+
   let rec searchlist (x : elt) (xs : elt list) : bool =
     match xs with
     | [] -> false
     | hd :: tl ->
-      if hd = x then
-        true
-      else
-        false || find x tl
+      if hd = x 
+      then true
+      else (searchlist x tl)
 
   let rec search (x : elt) (t : tree) : bool =
-    match tree with
-    | Leaf -> false
+    match t with
+    | Leaf -> raise EmptyTree
     | Branch (left, elts, right) ->
-      let hd :: tl = elts in
-      let diff = C.compare x hd in
-      match diff with
-      | Less -> false || search x left
-      | Greater -> false || search x right
-      | Equal ->
-        if (searchlist x elts) then
-          true
-        else
-          false
+      match elts with
+      | [] -> false
+      | hd::tl ->
+        match C.compare x hd with
+        | Less -> (search x left)
+        | Greater -> (search x right)
+        | Equal -> (searchlist x elts) 
+
 
   (* A useful function for removing the node with the minimum value from
    * a binary tree, returning that node and the new tree.
@@ -297,9 +298,9 @@ struct
   let rec getmin (t : tree) : elt =
     match t with
     | Branch (Leaf, x, Leaf) ->
-      match x with
-      | _ :: tl -> getmin (Leaf, tl, Leaf)
-      | x -> x
+      (match x with
+      | _ :: tl -> getmin (Branch (Leaf, tl, Leaf))
+      | [x] -> x)
     | Branch (left, _, _) -> getmin left
     | Leaf -> raise EmptyTree
 
@@ -310,10 +311,10 @@ struct
   let rec getmax (t : tree) : elt =
     match t with
     | Branch (Leaf, x, Leaf) ->
-      match x with
-      | _ :: tl -> getmax (Leaf, tl, Leaf)
-      | x -> x
-    | Branch (_, _, right) -> getmin right
+      (match x with
+      | _ :: tl -> getmax (Branch (Leaf, tl, Leaf))
+      | [x] -> x)
+    | Branch (_, _, right) -> getmax right
     | Leaf -> raise EmptyTree
 
   let test_insert () =
