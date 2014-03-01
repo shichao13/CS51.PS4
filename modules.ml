@@ -164,6 +164,20 @@ module TFBen = (Ben : TF)
 module TFRob = (Rob : TF)
 *)
 
+module type TF =
+sig
+    type info
+
+    val hometown: string
+    val year: int
+    val concentration: string
+
+    val grade_assignment: assignment -> string
+    val favorite_function: float -> float -> float
+
+    val print_info: unit
+end
+
 (*>* Problem 1.3 *>*)
 
 (* Challenge (worth 1 point)!
