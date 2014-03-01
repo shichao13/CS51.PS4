@@ -495,7 +495,7 @@ struct
     | [] -> e :: []
     | x :: xs ->
       match (C.compare e x) with
-      | Greater -> e :: xs
+      | Less -> e :: xs
       | _ -> x :: (add e xs)
 
 (*>* Problem 3.4 *>*)
@@ -504,7 +504,7 @@ struct
     (hd, tl)
 
   (* to Mike: will finish writing later *)
-  let test_is_empty () =
+  (*let test_is_empty () =
       let x = C.generate () in
       let x2 = C.generate_lt x () in
       let x3 = C.generate_lt x2 () in
@@ -530,7 +530,7 @@ struct
     test_is_empty ();
     test_add ();
     test_take ();
-    ()
+    ()*)
 end
 
 (* IMPORTANT: Don't forget to actually *call* run_tests, as with
@@ -552,6 +552,8 @@ struct
   module T = (BinSTree(C) : BINTREE with type elt = C.t)
 
   (* Implement the remainder of the module! *)
+  type elt = C.t
+
   type tree = Leaf | Branch of tree * elt list * tree
   
   type queue = Empty | Tree of tree
@@ -565,7 +567,7 @@ struct
 
   let add (e: elt) (q: queue) : queue =
     match q with
-    | Empty -> raise QueueEmpty
+    | Empty -> Tree (Branch (Leaf, [e], Leaf))
     | Tree t -> T.insert e t
     (*
     match q with
@@ -584,10 +586,10 @@ struct
     | Empty -> raise QueueEmpty
     | Tree t ->
       let (elts, t') = T.pull_min t in
-      let hd :: tl = elts in
-      let t' = T.delete elts t in
-      (hd, t')
-
+      match elts with
+      | [] -> raise QueueEmpty
+      | hd::_ -> T.delete hd t 
+    
   let run_tests unit : unit =
   (* copy in from queue once done! *)
 
