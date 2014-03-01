@@ -551,17 +551,44 @@ struct
   module T = (BinSTree(C) : BINTREE with type elt = C.t)
 
   (* Implement the remainder of the module! *)
-  type queue = elt list
+  type tree = Leaf | Branch of tree * elt list * tree
+  
+  type queue = Empty | Tree of tree
 
-  val empty : []
+  let empty = Leaf
 
-  val is_empty : queue -> bool
+  let is_empty (q : queue) : bool =
+    match q with
+    | Empty -> true
+    | _ -> false
 
-  val add : elt -> queue -> queue
+  let add (e: elt) (q: queue) : queue =
+    match q with
+    | Empty -> raise QueueEmpty
+    | Tree t -> T.insert e t
+    (*
+    match q with
+    | Leaf -> (Leaf, e, Leaf)
+    | Branch (left, elts, right) ->
+      let hd :: tl = elts in
+      let diff = C.compare e hd in
+      match diff with
+      | Less -> (add e left, elts, right)
+      | Equal -> (left, e :: elts, right)
+      | Greater -> (left, elts, add e right)
+    *)
 
-  val take : queue -> elt * queue
+  let take (q: queue) : elt * queue =
+    match q with
+    | Empty -> raise QueueEmpty
+    | Tree t ->
+      let (elts, t') = T.pull_min t in
+      let hd :: tl = elts in
+      let t' = T.delete elts t in
+      (hd, t')
 
-  val run_tests : unit -> unit
+  let run_tests unit : unit =
+  (* copy in from queue once done! *)
 
 end
 
@@ -589,6 +616,9 @@ struct
   exception QueueEmpty
 
   type elt = C.t
+
+  (* Access module function *)
+  module T = (BinSTree(C) : BINTREE with type elt = C.t)
 
   (* Be sure to read the pset spec for hints and clarifications.
    *
@@ -666,12 +696,38 @@ struct
 
   (* Simply returns the top element of the tree t (i.e., just a single pattern
    * match in *)
-  let get_top (t : tree) : elt = raise ImplementMe
+  let get_top (t : tree) : elt =
+    match t with
+    | Leaf (e) -> e
+    | OneBranch (e, _) -> e
+    | TwoBranch (_, e, _, _) -> e
 
   (* Takes a tree, and if the top node is greater than its children, fixes
    * it. If fixing it results in a subtree where the node is greater than its
    * children, then you must (recursively) fix this tree too. *)
-  let rec fix (t : tree) : tree = raise ImplementMe
+  let child_compare (e1 : elt) (e2 : elt) (e3 : elt) : int =
+    match ((C.compare e1 e2), (C.compare e1 e3), (C.compare e2 e3)) with
+    | Greater, Greater, Greater -> 3
+    | Greater, Greater, _       -> 2
+    | Greater, _, Greater       -> 1
+    | _, Greater, Greater       -> 3
+    | Greater, _, _             -> 2
+    | _, Greater, _             -> 3
+    | _, _, Greater             -> 1
+    | _, _, _                   -> 1    
+
+  let rec fix (t : tree) : tree =
+    match t with
+    | Leaf (e) -> t
+    | OneBranch (p, c) -> 
+      match C.compare p c
+      | Greater -> OneBranch(c,p)
+      | _ -> t
+    | TwoBranch (bal, node, l, r) ->
+      match child_compare node (get_top l) (get_top r) with
+      | 1 -> t
+      | 2 -> TwoBranch(bal, (get_top l), fix (top_switch node l), r)
+      | 3 -> TwoBranch(bal, (get_top r), l, fix (top_switch node r))
 
   let extract_tree (q : queue) : tree =
     match q with
@@ -691,7 +747,29 @@ struct
    * down into a new node at the bottom of the tree. *This* is the node
    * that we want you to return.
    *)
-  let rec get_last (t : tree) : elt * queue = raise ImplementMe
+  let get_odd_side (l : tree) (r : tree) : tree =
+    match l with
+    (* If leaf, the other side is one branch (we'll never run into a starting
+    tree. So, we just set it to the right side of the tree. *)
+    | Leaf _ -> r
+    | OneBranch (_, _) -> l
+    | TwoBranch (bal, _, _, _) ->
+      match bal with
+      | Odd -> l
+      | Even -> r
+
+  let rec get_last (t : tree) : elt * queue =
+    let last = (find_last t) in
+    (last, (T.delete last t))
+
+  let rec find_last (t : tree) : elt =
+    match t with
+    | Leaf (e) -> e
+    | OneBranch (p, c) -> c
+    | TwoBranch (bal, node, l, r) ->
+      match bal with
+      | Even -> find_last r
+      | Odd  -> find_last (get_odd_side l r)
 
   (* Implements the algorithm described in the writeup. You must finish this
    * implementation, as well as the implementations of get_last and fix, which
