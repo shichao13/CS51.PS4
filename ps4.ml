@@ -1054,6 +1054,15 @@ let selectionsort = sort list_module
 (* You should test that these sorts all correctly work, and that
  * lists are returned in non-decreasing order!! *)
 
+(* Random int list and its sorted version. *)
+let lst = [100; 7; 29; 4; 18]
+let sorted = [4; 7; 18; 29; 100]
+
+(* Test all 3 sorts. *)
+assert(heapsort lst = sorted);;
+assert(treesort lst = sorted);;
+assert(selectionsort lst = sorted);;
+
 
 (*****************************************************************************)
 (*                               Part N                                      *)
@@ -1072,14 +1081,15 @@ sig
   val sort : c list -> c list
 end
 
-
 module Hsort(C : COMPARABLE) : SORT with type c = C.t =
 struct
 
   type c = C.t
 
+  (* Use earlier defined BinaryHeap module. *)
   module Bheap = (BinaryHeap(C) : PRIOQUEUE with type elt = C.t)
 
+  (* Sort list a Bheap priority queue. *)
   let sort (lst : c list) : c list =
     let rec extractor pq lst =
       if Bheap.is_empty pq then lst else
@@ -1091,6 +1101,10 @@ end
 
 module IntSort = Hsort(IntCompare)
 module IntStringSort = Hsort(IntStringCompare)
+
+(* Test Cases *)
+assert(IntSort.sort [100; 7; 29; 4; 18] = [4; 7; 18; 29; 100]);;
+assert(IntStringSort.sort [(100, "a"); (7, "b"); (29, "c"); (4, "d"); (18, "e")] = [(4, "d"); (7, "b"); (18, "e"); (29, "c"); (100, "a")]);;
 
 
 (*>* Problem N.1 *>*)
@@ -1106,6 +1120,7 @@ module IntStringSort = Hsort(IntStringCompare)
 
 (*>* Problem N.2 *>*)
 
+(* Generate a n-long list of random ints. *)
 let randlist (n : int) : int list =
   let rec randint (n : int) (lst : int list) : int list =
     if n = 0
@@ -1114,6 +1129,7 @@ let randlist (n : int) : int list =
   (randint n [])   
 ;;
 
+(* Time how long function takes to sort n-long list. *)
 let timesort (f : int list -> int list) (n : int) =
   let xs = (randlist n) in
   let start = Unix.gettimeofday() in
@@ -1122,6 +1138,7 @@ let timesort (f : int list -> int list) (n : int) =
   stop -. start
 ;;
 
+(* Run trials. *)
 timesort heapsort 1000000;;
 timesort treesort 1000000;;
 timesort selectionsort 10000;;
@@ -1156,4 +1173,4 @@ timesort selectionsort 10000;;
  *)
 
 
-let minutes_spent : int = 840;;
+let minutes_spent : int = 900;;

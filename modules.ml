@@ -179,3 +179,42 @@ end
  * You should not trivially reuse any of the same values as
  * were used above in order to implement the module.
  *)
+
+module Ryan =
+struct
+
+    type info = {
+        hometown : string;
+        year : int;
+        concentration : string;
+        house : string
+    }
+
+    let hometown = "Unknown Hometown"
+    let year = 2014
+    let concentration = "Computer Science"
+    let house = "Pforzheimer"
+
+    let info = {
+        hometown;
+        year;
+        concentration;
+        house
+    }
+
+    let least_favorite_function = ( Float.of_int )
+    let favorite_function _ = failwith "All folds are beautiful, so no favorite."
+    let fold = List.fold_right ~f:( * )
+    let grade_assignment assignment =
+      "Everyone gets a fair score for pset " ^ string_of_int assignment ^ "!!!"
+
+    let print_info = fun _ -> 
+        print_string (info.house ^ "\n" ^
+            string_of_int year ^ "\n" ^
+            info.concentration ^ "\n" ^
+            info.hometown ^ "\n" ^
+            (grade_assignment 4)) 
+
+end
+
+module TFRyan = (Ryan : TF)
