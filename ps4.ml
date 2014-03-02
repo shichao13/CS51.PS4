@@ -199,11 +199,11 @@ struct
     | Branch (left, elts, right) ->
       match elts with
       | [] -> Branch (left, [x], right)
-      | hd::tl ->
+      | hd::_ ->
         match C.compare x hd with
-          | Less -> Branch (insert x left, elts, right)
+          | Less -> Branch ((insert x left), elts, right)
           | Equal -> Branch (left, x :: elts, right)
-          | Greater -> Branch (left, elts, insert x right)
+          | Greater -> Branch (left, elts, (insert x right))
 
 
 (*>* Problem 2.1 *>*)
@@ -297,12 +297,13 @@ struct
 
   let rec getmin (t : tree) : elt =
     match t with
-    | Branch (Leaf, x, Leaf) ->
-      (match x with
-      | _ :: tl -> getmin (Branch (Leaf, tl, Leaf))
-      | [x'] -> x')
-    | Branch (left, _, _) -> getmin left
     | Leaf -> raise EmptyTree
+    | Branch (Leaf, x, _) ->
+      (match x with
+      | [x'] -> x'
+      | _ :: tl -> getmin (Branch (Leaf, tl, Leaf)))
+    | Branch (left, _, _) -> getmin left
+
 
 (*>* Problem 2.3 *>*)
 
@@ -310,12 +311,12 @@ struct
    * return the last element in the matching list. *)
   let rec getmax (t : tree) : elt =
     match t with
-    | Branch (Leaf, x, Leaf) ->
-      (match x with
-      | _ :: tl -> getmax (Branch (Leaf, tl, Leaf))
-      | [x] -> x)
-    | Branch (_, _, right) -> getmax right
     | Leaf -> raise EmptyTree
+    | Branch (_, x, Leaf) ->
+      (match x with
+      | [x] -> x
+      | _ :: tl -> getmax (Branch (Leaf, tl, Leaf)))
+    | Branch (_, _, right) -> getmax right
 
   let test_insert () =
     let x = C.generate () in
@@ -492,56 +493,53 @@ struct
    *)
   let rec add (e : elt) (q : queue) : queue =
     match q with
-    | [] -> e :: []
+    | [] -> [e]
     | x :: xs ->
       match (C.compare e x) with
-      | Less -> e :: xs
+      | Less -> e :: q
       | _ -> x :: (add e xs)
+
 
 (*>* Problem 3.4 *>*)
   let take (q : queue) : elt * queue =
-    let hd :: tl = q in
-    (hd, tl)
+    match q with
+    | hd :: tl -> (hd, tl)
+    | [] -> raise QueueEmpty
 
   let test_is_empty () =
-      let emptyset = empty in
       let x = C.generate () in
       let x2 = C.generate_lt x () in
       let x3 = C.generate_lt x2 () in
       let x4 = C.generate_lt x3 () in
-      assert (is_empty emptyset = true)
-      assert (is_empty x = false)
-      assert (is_empty x2 = false)
-      assert (is_empty x3 = false)
-      assert (is_empty x4 = false)
-      assert (is_empty (add x emptyset) = false)
-      assert (is_empty (add x3 (add x2 emptyset)) = false)
+      assert (is_empty empty = true);
+      assert (is_empty (add x empty) = false);
+      assert (is_empty (add x3 (add x2 empty)) = false)
 
   let test_add () =
-      let emptyset = empty in
       let x = C.generate () in
       let x2 = C.generate_gt x () in
       let x3 = C.generate_gt x2 () in
       let x4 = C.generate_gt x3 () in
-      assert (add (take add (x emptyset)) = add (x emptyset))
-      assert (is_empty (add x3 (add x2 (add x emptyset))) = false)
+      assert (take (add x empty) = (x, empty));
+      assert (is_empty (add x3 (add x2 (add x empty))) = false);
+      assert (add x empty = [x]);
+      assert (add x2 (add x empty) = [x;x2])
 
   let test_take () =
-      let emptyset = empty in
       let x = C.generate () in
-      let x2 = C.generate_lt x () in
-      let x3 = C.generate_lt x2 () in
-      let x4 = C.generate_lt x3 () in
-      let all_added = add x2 (add x3 (add x4 (add x emptyset))) in
-      let (y, almost) = take (all_added) in
-      let (y2, almost2) = take (almost) in
-      let (y3, almost3) = take (almost2) in
-      let (y4, nempty) = take (almost3) in
-      assert (x = y)
-      assert (x2 = y2)
-      assert (x3 = y3)
-      assert (x4 = y4)
-      assert (is_empty nempty = true)
+      let x2 = C.generate_gt x () in
+      let x3 = C.generate_gt x2 () in
+      let x4 = C.generate_gt x3 () in
+      let all_added = add x2 (add x3 (add x4 (add x empty))) in
+      let (y, almost) = take all_added in
+      let (y2, almost2) = take almost in
+      let (y3, almost3) = take almost2 in
+      let (y4, nempty) = take almost3 in
+      assert (x = y);
+      assert (x2 = y2);
+      assert (x3 = y3);
+      assert (x4 = y4);
+      assert (is_empty nempty = true);
       assert (is_empty almost2 = false)
 
   let run_tests () =
@@ -553,6 +551,11 @@ end
 
 (* IMPORTANT: Don't forget to actually *call* run_tests, as with
  * IntTree above! *)
+
+module IntLQueue = ListQueue(IntCompare)
+
+let _ = IntLQueue.run_tests ()
+
 
 (*>* Problem 3.5 *>*)
 
@@ -606,8 +609,10 @@ struct
     | Empty -> raise QueueEmpty
     | Tree t ->
       let e = T.getmin t in
-      (e,  Tree (T.delete e t))
-
+      if t = T.insert e T.empty then
+       (e, empty)
+      else
+        (e,  Tree (T.delete e t))
       (*
       match elts with
       | [] -> raise QueueEmpty
@@ -615,30 +620,24 @@ struct
       *)
     
   let test_is_empty () =
-      let emptyset = empty in
       let x = C.generate () in
       let x2 = C.generate_lt x () in
       let x3 = C.generate_lt x2 () in
       let x4 = C.generate_lt x3 () in
-      assert (is_empty emptyset = true)
-      assert (is_empty x = false)
-      assert (is_empty x2 = false)
-      assert (is_empty x3 = false)
-      assert (is_empty x4 = false)
-      assert (is_empty (add x emptyset) = false)
-      assert (is_empty (add x3 (add x2 emptyset)) = false)
+      assert (is_empty empty = true);
+      assert (is_empty (add x empty) = false)
+      (* assert (is_empty (add x3 (add x2 emptyset)) = false) *)
 
   let test_add () =
-      let emptyset = empty in
       let x = C.generate () in
       let x2 = C.generate_gt x () in
       let x3 = C.generate_gt x2 () in
       let x4 = C.generate_gt x3 () in
-      assert (add (take add (x emptyset)) = add (x emptyset))
-      assert (add x emptyset = Tree (Leaf x))
-      assert (add x2 (add x emptyset) = Tree (OneBranch (x, x2)))
-      assert (add x3 (add x2 (add x emptyset)) = Tree (TwoBranch (Leaf x2, x, Leaf x3)))
-      assert (is_empty (add x3 (add x2 (add x emptyset))) = false)
+      assert (take (add x empty) = (x, empty));
+      (*assert (add x emptyset = Tree (Leaf x));
+      assert (add x2 (add x emptyset) = Tree (Branch(Leaf, x2, Leaf),x, Leaf));
+      assert (add x3 (add x2 (add x emptyset)) = Tree (Branch(Leaf, x2, Leaf), x, Branch(Leaf, x3, Leaf)));
+      *)assert (is_empty (add x3 (add x2 (add x empty))) = false)
 
   let test_take () =
       let emptyset = empty in
@@ -651,22 +650,26 @@ struct
       let (y2, almost2) = take (almost) in
       let (y3, almost3) = take (almost2) in
       let (y4, nempty) = take (almost3) in
-      assert (x4 = y)
-      assert (x3 = y2)
-      assert (x2 = y3)
-      assert (x = y4)
-      assert (is_empty nempty = true)
+      assert (x4 = y);
+      assert (x3 = y2);
+      assert (x2 = y3);
+      assert (x = y4);
+      assert (is_empty nempty = true);
       assert (is_empty almost2 = false)
-      assert (almost3 = Tree (Leaf x))
-      assert (all_added = Tree (OneBranch (x2, x4), x, Leaf x3))
-
+      (*assert (almost3 = Tree (Branch(Leaf, x, Leaf)));
+      assert (all_added = Tree (Branch(Branch(Leaf, x4, Leaf), x2, Leaf), x, Branch(Leaf, x3, Leaf)))
+*)
   let run_tests () =
     test_is_empty ();
-    test_add ();
+    test_add (); 
     test_take ();
     ()
 end
 
+
+module IntTQueue = TreeQueue(IntCompare)
+
+let _ = IntTQueue.run_tests ()
 
 (*****************************************************************************)
 (*                               Part 4                                      *)
@@ -914,9 +917,29 @@ struct
         | Tree t' -> (e, Tree (fix (TwoBranch (Even, last, t', t2))))
       )
 
-  let run_tests () = raise ImplementMe
+  let test_add () =
+    let x = C.generate () in
+    let q = add x empty in
+    assert (q = Tree (Leaf x));
+    let y = C.generate_lt x () in
+    let q = add y q in
+    assert (q = Tree (OneBranch(y, x)));
+    let q = add y q in
+    assert (q = Tree (TwoBranch(Even, y, Leaf x, Leaf x)));
+    let z = C.generate_gt x () in
+    let q = add z q in
+    assert (q = Tree (TwoBranch(Odd, y, OneBranch(x, z), Leaf x)));
+    let q = add y q in
+    assert (q = Tree (TwoBranch(Even, y, OneBranch(x, z), OneBranch(y, x))))
+  
+  let run_tests () =
+    test_add (); 
+    ()
 end
 
+module IntHeap = BinaryHeap(IntCompare)
+
+let () = IntHeap.run_tests ()
 
 
 (* Now to actually use our priority queue implementations for something useful!
@@ -1023,7 +1046,8 @@ struct
     List.rev (extractor pq [])
 end
 
-
+module IntSort = Hsort(IntCompare)
+module IntStringSort = Hsort(IntStringCompare)
 
 
 (*>* Problem N.1 *>*)
