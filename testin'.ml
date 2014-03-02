@@ -186,15 +186,27 @@ let test_is_empty () =
     | TwoBranch (bal, node, l, r) ->
       (match bal with
       | Even ->
-        let (bot, Tree myTreeQL) = get_last r in
-        (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+        let (bot, myTreeQL) = get_last r in
+        (match myTreeQL, l with
+        | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+        | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+        | Empty, _ -> failwith "Unbalanced Tree!"
+        | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
       | Odd  -> 
         if get_odd_side l r then
-          let (bot, Tree myTreeQL) = get_last r in
-          (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+          let (bot, myTreeQL) = get_last r in
+          (match myTreeQL, l with
+          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, _ -> failwith "Unbalanced Tree!"
+          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
         else
-          let (bot, Tree myTreeQL) = get_last l in
-          (bot, Tree (TwoBranch(bal, node, myTreeQL, r))))
+          let (bot, myTreeQL) = get_last l in
+          (match myTreeQL, r with
+          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, _ -> failwith "Unbalanced Tree!"
+          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, tre, r)))))
 
   let extract_tree (q : queue) : tree =
     match q with

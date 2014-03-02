@@ -864,7 +864,7 @@ struct
       | Odd -> false
       | Even -> true)
 
-  let rec get_last (t : tree) : elt * queue =
+(*let rec get_last (t : tree) : elt * queue =
     match t with
     | Leaf e -> (e, Empty)
     | OneBranch (p, c) -> (c, Tree(Leaf p))
@@ -880,6 +880,35 @@ struct
         else
           let (bot, Tree myTreeQL) = get_last l in
           (bot, Tree (TwoBranch(bal, node, myTreeQL, r))))
+*)
+  let rec get_last (t : tree) : elt * queue =
+    match t with
+    | Leaf e -> (e, Empty)
+    | OneBranch (p, c) -> (c, Tree(Leaf p))
+    | TwoBranch (bal, node, l, r) ->
+      (match bal with
+      | Even ->
+        let (bot, myTreeQL) = get_last r in
+        (match myTreeQL, l with
+        | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+        | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+        | Empty, _ -> failwith "Unbalanced Tree!"
+        | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
+      | Odd  -> 
+        if get_odd_side l r then
+          let (bot, myTreeQL) = get_last r in
+          (match myTreeQL, l with
+          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, _ -> failwith "Unbalanced Tree!"
+          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
+        else
+          let (bot, myTreeQL) = get_last l in
+          (match myTreeQL, r with
+          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, _ -> failwith "Unbalanced Tree!"
+          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, tre, r)))))
 
   (* Implements the algorithm described in the writeup. You must finish this
    * implementation, as well as the implementations of get_last and fix, which
