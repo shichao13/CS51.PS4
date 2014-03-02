@@ -698,28 +698,10 @@ struct
   (* Access module function *)
   module T = (BinSTree(C) : BINTREE with type elt = C.t)
 
-  (* Be sure to read the pset spec for hints and clarifications.
-   *
-   * Remember the invariants of the tree that make up your queue:
-   * 1) A tree is ODD if its left subtree has 1 more node than its right
-   * subtree. It is EVEN if its left and right subtrees have the same number of
-   * nodes. The tree can never be in any other state. This is the WEAK
-   * invariant, and should never be false.
-   *
-   * 2) All nodes in the subtrees of a node should be *greater* than (or equal
-   * to) the value of that node. This, combined with the previous invariant,
-   * makes a STRONG invariant. Any tree that a user passes in to your module
-   * and receives back from it should satisfy this invariant.  However, in the
-   * process of, say, adding a node to the tree, the tree may intermittently
-   * not satisfy the order invariant. If so, you *must* fix the tree before
-   * returning it to the user.  Fill in the rest of the module below!
-   *)
   (* A node in the tree is either even or odd *)
   type balance = Even | Odd
 
-  (* A tree is either just a single element, has one branch (the first elt in
-   * the tuple is the element at this node, and the second elt is the element
-   * down the branch), or has two branches (with the node being even or odd) *)
+  (* Type definition for tree *)
   type tree =   TwoBranch of balance * elt * tree * tree
               | OneBranch of elt * elt
               | Leaf of elt
@@ -733,11 +715,6 @@ struct
 
   (* Adds element e to the queue q *)
   let add (e : elt) (q : queue) : queue =
-    (* Given a tree, where e will be inserted is deterministic based on the
-     * invariants. If we encounter a node in the tree where its value is greater
-     * than the element being inserted, then we place the new elt in that spot
-     * and propagate what used to be at that spot down toward where the new
-     * element would have been inserted *)
     let rec add_to_tree (e : elt) (t : tree) : tree =
       match t with
       (* If the tree is just a Leaf, then we end up with a OneBranch *)
@@ -772,29 +749,28 @@ struct
     | Empty -> Tree (Leaf e)
     | Tree t -> Tree (add_to_tree e t)
 
-  (* Simply returns the top element of the tree t (i.e., just a single pattern
-   * match in *)
+  (* Returns the top element of the tree t *)
   let get_top (t : tree) : elt =
     match t with
     | Leaf e -> e
     | OneBranch (e, _) -> e
     | TwoBranch (_, e, _, _) -> e
 
-  (* Takes a tree, and if the top node is greater than its children, fixes
-   * it. If fixing it results in a subtree where the node is greater than its
-   * children, then you must (recursively) fix this tree too. *)
+  (* Helper for fix. Compares three elements, returns lowest *)
   let child_compare (e1 : elt) (e2 : elt) (e3 : elt) : int =
     if (C.compare e1 e2) = Greater then
       if (C.compare e2 e3) = Greater then 3 else 2
     else
       if (C.compare e1 e3) = Greater then 3 else 1
 
+  (* Helper for fix. Switches top element with node *)
   let top_switch (node : elt) (t : tree) : tree =
     match t with
     | Leaf e -> Leaf node
     | OneBranch (e1, e2) -> OneBranch (node, e2)
     | TwoBranch (bal, e, l, r) -> TwoBranch (bal, node, l, r)
 
+  (* If the top node is greater than its children, fixes tree. *)
   let rec fix (t : tree) : tree =
     match t with
     | Leaf e -> t
@@ -806,53 +782,14 @@ struct
       (match child_compare node (get_top l) (get_top r) with
       | 1 -> t
       | 2 -> TwoBranch(bal, (get_top l), fix (top_switch node l), r)
-      | 3 -> TwoBranch(bal, (get_top r), l, fix (top_switch node r)))
+      | _ -> TwoBranch(bal, (get_top r), l, fix (top_switch node r)))
 
   let extract_tree (q : queue) : tree =
     match q with
     | Empty -> raise QueueEmpty
     | Tree t -> t
 
-  (* Takes a tree, and returns the item that was most recently inserted into
-   * that tree, as well as the queue that results from removing that element.
-   * Notice that a queue is returned (since removing an element from just a leaf
-   * would result in an empty case, which is captured by the queue type
-   *
-   * By "item most recently inserted", we don't mean the
-   * most recently inserted *value*, but rather the newest node that was
-   * added to the bottom-level of the tree. If you follow the implementation
-   * of add carefully, you'll see that the newest value may end up somewhere
-   * in the middle of the tree, but there is always *some* value brought
-   * down into a new node at the bottom of the tree. *This* is the node
-   * that we want you to return.
-   *)
-
-  (*
-  let get_odd_side (l : tree) (r : tree) : tree =
-    match l with
-    (* If leaf, the other side is one branch (we'll never run into a starting
-    tree. So, we just set it to the right side of the tree. *)
-    | Leaf _ -> r
-    | OneBranch (_, _) -> l
-    | TwoBranch (bal, _, _, _) ->
-      (match bal with
-      | Odd -> l
-      | Even -> r)
-
-  let rec find_last (t : tree) : elt =
-    match t with
-    | Leaf e -> e
-    | OneBranch (p, c) -> c
-    | TwoBranch (bal, node, l, r) ->
-      (match bal with
-      | Even -> find_last r
-      | Odd  -> find_last (get_odd_side l r))
-
-  let rec get_last (t : tree) : elt * queue =
-    let last = (find_last t) in
-    (last, (T.delete last t))
-  *)
-
+  (* Helper function for get_last. Finds the odd side*)
   let get_odd_side (l : tree) (r : tree) : bool =
     match l with
     (* If leaf, the other side is one branch (we'll never run into a starting
@@ -864,55 +801,7 @@ struct
       | Odd -> false
       | Even -> true)
 
-(*let rec get_last (t : tree) : elt * queue =
-    match t with
-    | Leaf e -> (e, Empty)
-    | OneBranch (p, c) -> (c, Tree(Leaf p))
-    | TwoBranch (bal, node, l, r) ->
-      (match bal with
-      | Even ->
-        let (bot, Tree myTreeQL) = get_last r in
-        (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
-      | Odd  -> 
-        if get_odd_side l r then
-          let (bot, Tree myTreeQL) = get_last r in
-          (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
-        else
-          let (bot, Tree myTreeQL) = get_last l in
-          (bot, Tree (TwoBranch(bal, node, myTreeQL, r))))
-*)
- (* let rec get_last (t : tree) : elt * queue =
-    match t with
-    | Leaf e -> (e, Empty)
-    | OneBranch (p, c) -> (c, Tree(Leaf p))
-    | TwoBranch (bal, node, l, r) ->
-      (match bal with
-      | Even ->
-        let (bot, myTreeQL) = get_last r in
-        (match myTreeQL, l with
-        | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
-        | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
-        | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, OneBranch(n2, l2), Leaf r2)))
-        | Empty, _ -> failwith "Unbalanced Tree!"
-        | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
-      | Odd  -> 
-        if get_odd_side l r then
-          let (bot, myTreeQL) = get_last r in
-          (match myTreeQL, l with
-          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
-          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
-          | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, OneBranch(n2, l2), Leaf r2)))
-          | Empty, _ -> failwith "Unbalanced Tree!"
-          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
-        else
-          let (bot, myTreeQL) = get_last l in
-          (match myTreeQL, r with
-          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
-          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
-          | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, Leaf r2, OneBranch(n2, l2))))
-          | Empty, _ -> failwith "Unbalanced Tree!"
-          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, tre, r)))))*)
-
+  (* Gets the last node of the tree *)
   let rec get_last (t : tree) : elt * queue =
     match t with
     | Leaf e -> (e, Empty)
@@ -925,12 +814,8 @@ struct
        match get_last r with
        | (e, Empty) -> (e, Tree (OneBranch (node, get_top l)))
        | (e, Tree r') -> (e, Tree (TwoBranch (Odd, node, l, r')))
-            
 
-
-  (* Implements the algorithm described in the writeup. You must finish this
-   * implementation, as well as the implementations of get_last and fix, which
-   * take uses *)
+  (* Implements the algorithm described in the writeup.*)
   let take (q : queue) : elt * queue =
     match extract_tree q with
     (* If the tree is just a Leaf, then return the value of that leaf, and the
@@ -956,27 +841,61 @@ struct
       let (last, q') = get_last t1 in
       (match q' with
         | Empty -> failwith "Tree Wasn't Odd"
-        | Tree (Leaf e') -> (e, Tree( fix (TwoBranch (Even, last, Leaf (e'), t2))))
-        | Tree t' -> (e, Tree (fix (TwoBranch (Even, last, t', t2))))
+        | Tree (Leaf e') -> 
+            (e, Tree( fix (TwoBranch (Even, last, Leaf (e'), t2))))
+        | Tree t' -> 
+            (e, Tree (fix (TwoBranch (Even, last, t', t2))))
       )
 
-  let test_add () =
-    let x = C.generate () in
-    let q = add x empty in
-    assert (q = Tree (Leaf x));
-    let y = C.generate_lt x () in
-    let q = add y q in
-    assert (q = Tree (OneBranch(y, x)));
-    let q = add y q in
-    assert (q = Tree (TwoBranch(Even, y, Leaf x, Leaf x)));
-    let z = C.generate_gt x () in
-    let q = add z q in
-    assert (q = Tree (TwoBranch(Odd, y, OneBranch(x, z), Leaf x)));
-    let q = add y q in
-    assert (q = Tree (TwoBranch(Even, y, OneBranch(x, z), OneBranch(y, x))))
+(* Assert tests for this function! *)
+let test_get_top () = 
+  let x  = C.generate       () in
+  let x2 = C.generate_gt x  () in
+  let x3 = C.generate_gt x2 () in
+  let x4 = C.generate_gt x3 () in
+  let Tree t1 = add x empty in
+  assert (get_top t1 = x);
+  let Tree t2 = (add x4 (add x2 empty)) in 
+  assert (get_top t2 = x2);
+  let Tree t3 = (add x4 (add x3 (add x2 (add x empty)))) in
+  assert (get_top t3 = x);
+  let Tree t4 = (add x2 (add x3 empty)) in
+  assert (get_top t4 = x2)
+
+let test_get_last () =
+  let x  = C.generate       () in
+  let x2 = C.generate_gt x  () in
+  let x3 = C.generate_gt x2 () in
+  let x4 = C.generate_gt x3 () in
+  let Tree t1 = add x empty in
+  assert (get_last t1 = (x, empty));
+  let Tree t2 = (add x3 (add x3 empty)) in
+  assert (get_last t2 = (x3, add x3 empty));
+  let Tree t3 = (add x4 (add x3 (add x2 (add x empty)))) in
+  assert (get_last t3 = (x4, add x3 (add x2 (add x empty))));
+  let Tree t4 = (add x2 (add x3 empty)) in
+  assert (get_last t4 = (x3, add x2 empty));
+  let Tree t5 = (add x (add x2 empty)) in
+  assert (get_last t5 = (x2, add x empty))
+
+let test_take () =
+  let x  = C.generate       () in
+  let x2 = C.generate_gt x  () in
+  let x3 = C.generate_gt x2 () in
+  let x4 = C.generate_gt x3 () in
+  let q  = add x empty in
+  let q2 = add x2 q in
+  let q3 = add x3 (add x (add x4 empty)) in
+  let q4 = add x4 (add x4 (add x4 empty)) in
+  assert (take q2 = (x, add x2 empty));
+  assert (take q3 = (x, add x3 (add x4 empty)));
+  assert (take q = (x, empty));
+  assert (take q4 = (x4, add x4 (add x4 empty)))
   
   let run_tests () =
-    test_add (); 
+    test_get_top ();
+    test_get_last ();
+    test_take (); 
     ()
 end
 
