@@ -892,6 +892,7 @@ struct
         (match myTreeQL, l with
         | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
         | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+        | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, OneBranch(n2, l2), Leaf r2)))
         | Empty, _ -> failwith "Unbalanced Tree!"
         | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
       | Odd  -> 
@@ -900,6 +901,7 @@ struct
           (match myTreeQL, l with
           | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
           | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, OneBranch(n2, l2), Leaf r2)))
           | Empty, _ -> failwith "Unbalanced Tree!"
           | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
         else
@@ -907,6 +909,7 @@ struct
           (match myTreeQL, r with
           | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
           | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, Leaf r2, OneBranch(n2, l2))))
           | Empty, _ -> failwith "Unbalanced Tree!"
           | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, tre, r)))))
 
@@ -937,7 +940,7 @@ struct
     | TwoBranch (Odd, e, t1, t2) ->
       let (last, q') = get_last t1 in
       (match q' with
-        | Empty -> failwith "Tree Wasn't Odd!"
+        | Empty -> failwith "Tree Wasn't Odd"
         | Tree (Leaf e') -> (e, Tree( fix (TwoBranch (Even, last, Leaf (e'), t2))))
         | Tree t' -> (e, Tree (fix (TwoBranch (Even, last, t', t2))))
       )
