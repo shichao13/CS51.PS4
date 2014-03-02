@@ -1,3 +1,95 @@
+(* Random Code we no longer use *)
+
+  let test_add () =
+    let x = C.generate () in
+    let q = add x empty in
+    assert (q = Tree (Leaf x));
+    let y = C.generate_lt x () in
+    let q = add y q in
+    assert (q = Tree (OneBranch(y, x)));
+    let q = add y q in
+    assert (q = Tree (TwoBranch(Even, y, Leaf x, Leaf x)));
+    let z = C.generate_gt x () in
+    let q = add z q in
+    assert (q = Tree (TwoBranch(Odd, y, OneBranch(x, z), Leaf x)));
+    let q = add y q in
+    assert (q = Tree (TwoBranch(Even, y, OneBranch(x, z), OneBranch(y, x))))
+
+(*let rec get_last (t : tree) : elt * queue =
+    match t with
+    | Leaf e -> (e, Empty)
+    | OneBranch (p, c) -> (c, Tree(Leaf p))
+    | TwoBranch (bal, node, l, r) ->
+      (match bal with
+      | Even ->
+        let (bot, Tree myTreeQL) = get_last r in
+        (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+      | Odd  -> 
+        if get_odd_side l r then
+          let (bot, Tree myTreeQL) = get_last r in
+          (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+        else
+          let (bot, Tree myTreeQL) = get_last l in
+          (bot, Tree (TwoBranch(bal, node, myTreeQL, r))))
+*)
+ (* let rec get_last (t : tree) : elt * queue =
+    match t with
+    | Leaf e -> (e, Empty)
+    | OneBranch (p, c) -> (c, Tree(Leaf p))
+    | TwoBranch (bal, node, l, r) ->
+      (match bal with
+      | Even ->
+        let (bot, myTreeQL) = get_last r in
+        (match myTreeQL, l with
+        | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+        | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+        | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, OneBranch(n2, l2), Leaf r2)))
+        | Empty, _ -> failwith "Unbalanced Tree!"
+        | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
+      | Odd  -> 
+        if get_odd_side l r then
+          let (bot, myTreeQL) = get_last r in
+          (match myTreeQL, l with
+          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, OneBranch(n2, l2), Leaf r2)))
+          | Empty, _ -> failwith "Unbalanced Tree!"
+          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, l, tre))))
+        else
+          let (bot, myTreeQL) = get_last l in
+          (match myTreeQL, r with
+          | Empty, Leaf lea -> (bot, Tree (OneBranch (node, lea)))
+          | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
+          | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, Leaf r2, OneBranch(n2, l2))))
+          | Empty, _ -> failwith "Unbalanced Tree!"
+          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, tre, r)))))*)
+(*
+  let get_odd_side (l : tree) (r : tree) : tree =
+    match l with
+    (* If leaf, the other side is one branch (we'll never run into a starting
+    tree. So, we just set it to the right side of the tree. *)
+    | Leaf _ -> r
+    | OneBranch (_, _) -> l
+    | TwoBranch (bal, _, _, _) ->
+      (match bal with
+      | Odd -> l
+      | Even -> r)
+
+  let rec find_last (t : tree) : elt =
+    match t with
+    | Leaf e -> e
+    | OneBranch (p, c) -> c
+    | TwoBranch (bal, node, l, r) ->
+      (match bal with
+      | Even -> find_last r
+      | Odd  -> find_last (get_odd_side l r))
+
+  let rec get_last (t : tree) : elt * queue =
+    let last = (find_last t) in
+    (last, (T.delete last t))
+  *)
+
+(* Problem 3 Tests *)
 (* belongs near line 500! *)
 
 let test_is_empty () =
@@ -212,3 +304,20 @@ let test_is_empty () =
     match q with
     | Empty -> failwith "No Tree D:"
     | Tree t -> t
+
+(* Problem 4 Test Functions *)
+let test_add () =
+    let x = C.generate () in
+    let q = add x empty in
+    assert (take q = (x, empty));
+    let y = C.generate_lt x () in
+    let q = add y q in
+    assert (take q = (y, (add x empty)));
+    let q2 = add y q in
+    assert (take q2 = (y, q));
+    let z = C.generate_gt x () in
+    let q3 = add z q2 in
+    let test_a = add z (add y (add x empty)) in
+    assert (take q3 = (y, ));
+    let q4 = add y q3 in
+    assert (take q4 = (y, add y test_a))
