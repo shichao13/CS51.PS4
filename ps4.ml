@@ -784,15 +784,10 @@ struct
    * it. If fixing it results in a subtree where the node is greater than its
    * children, then you must (recursively) fix this tree too. *)
   let child_compare (e1 : elt) (e2 : elt) (e3 : elt) : int =
-    match ((C.compare e1 e2), (C.compare e1 e3), (C.compare e2 e3)) with
-    | Greater, Greater, Greater -> 3
-    | Greater, Greater, _       -> 2
-    | Greater, _, Greater       -> 1
-    | _, Greater, Greater       -> 3
-    | Greater, _, _             -> 2
-    | _, Greater, _             -> 3
-    | _, _, Greater             -> 1
-    | _, _, _                   -> 1
+    if (C.compare e1 e2) = Greater then
+      if (C.compare e2 e3) = Greater then 3 else 2
+    else
+      if (C.compare e1 e3) = Greater then 3 else 1
 
   let top_switch (node : elt) (t : tree) : tree =
     match t with

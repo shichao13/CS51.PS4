@@ -100,3 +100,103 @@ let test_is_empty () =
     test_add ();
     test_take ();
     ()
+
+(* Problem 4 Testing *)
+  type balance = Even | Odd
+
+  type tree =   TwoBranch of balance * elt * tree * tree
+              | OneBranch of elt * elt
+              | Leaf of elt
+
+  type queue = Empty | Tree of tree
+
+  let empty = Empty
+
+  let add (e : elt) (q : queue) : queue =
+    let rec add_to_tree (e : elt) (t : tree) : tree =
+      match t with
+      | Leaf e1 ->
+        if e >= e1 then 
+          OneBranch (e1, e)
+        else
+          OneBranch (e, e1)
+      | OneBranch(e1, e2) ->
+        if e >= e1 then
+          TwoBranch (Even, e1, Leaf e2, Leaf e)
+        else
+          TwoBranch (Even, e, Leaf e2, Leaf e1)
+      | TwoBranch(Even, e1, t1, t2) ->
+        if e >= e1 then
+         TwoBranch(Odd, e1, add_to_tree e t1, t2)
+        else
+         TwoBranch(Odd, e, add_to_tree e1 t1, t2)
+      | TwoBranch(Odd, e1, t1, t2) ->
+        if e >= e1 then
+          TwoBranch(Even, e1, t1, add_to_tree e t2)
+        else
+          TwoBranch(Even, e, t1, add_to_tree e1 t2)
+    in
+    match q with
+    | Empty -> Tree (Leaf e)
+    | Tree t -> Tree (add_to_tree e t)
+
+  let get_top (t : tree) : elt =
+    match t with
+    | Leaf e -> e
+    | OneBranch (e, _) -> e
+    | TwoBranch (_, e, _, _) -> e
+
+  let child_compare (e1 : elt) (e2 : elt) (e3 : elt) : int =
+    if e1 > e2 then
+      if e2 > e3 then 3 else 2
+    else
+      if e1 > e3 then 3 else 1
+
+  let top_switch (node : elt) (t : tree) : tree =
+    match t with
+    | Leaf e -> Leaf node
+    | OneBranch (e1, e2) -> OneBranch (node, e2)
+    | TwoBranch (bal, e, l, r) -> TwoBranch (bal, node, l, r)
+
+  let rec fix (t : tree) : tree =
+    match t with
+    | Leaf e -> t
+    | OneBranch (p, c) -> if p > c then OneBranch(c,p) else t
+    | TwoBranch (bal, node, l, r) ->
+      (match child_compare node (get_top l) (get_top r) with
+      | 1 -> t
+      | 2 -> TwoBranch(bal, (get_top l), fix (top_switch node l), r)
+      | _ -> TwoBranch(bal, (get_top r), l, fix (top_switch node r)))
+
+  let get_odd_side (l : tree) (r : tree) : bool =
+    match l with
+    (* If leaf, the other side is one branch (we'll never run into a starting
+    tree. So, we just set it to the right side of the tree. *)
+    | Leaf _ -> true
+    | OneBranch (_, _) -> false
+    | TwoBranch (bal, _, _, _) ->
+      (match bal with
+      | Odd -> false
+      | Even -> true)
+
+  let rec get_last (t : tree) : elt * queue =
+    match t with
+    | Leaf e -> (e, Empty)
+    | OneBranch (p, c) -> (c, Tree(Leaf p))
+    | TwoBranch (bal, node, l, r) ->
+      (match bal with
+      | Even ->
+        let (bot, Tree myTreeQL) = get_last r in
+        (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+      | Odd  -> 
+        if get_odd_side l r then
+          let (bot, Tree myTreeQL) = get_last r in
+          (bot, Tree (TwoBranch(bal, node, l, myTreeQL)))
+        else
+          let (bot, Tree myTreeQL) = get_last l in
+          (bot, Tree (TwoBranch(bal, node, myTreeQL, r))))
+
+  let extract_tree (q : queue) : tree =
+    match q with
+    | Empty -> failwith "No Tree D:"
+    | Tree t -> t
