@@ -937,6 +937,7 @@ struct
     | TwoBranch (Odd, e, t1, t2) ->
       let (last, q') = get_last t1 in
       (match q' with
+        | Empty -> failwith "Tree Wasn't Odd!"
         | Tree (Leaf e') -> (e, Tree( fix (TwoBranch (Even, last, Leaf (e'), t2))))
         | Tree t' -> (e, Tree (fix (TwoBranch (Even, last, t', t2))))
       )
