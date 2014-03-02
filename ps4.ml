@@ -881,7 +881,7 @@ struct
           let (bot, Tree myTreeQL) = get_last l in
           (bot, Tree (TwoBranch(bal, node, myTreeQL, r))))
 *)
-  let rec get_last (t : tree) : elt * queue =
+ (* let rec get_last (t : tree) : elt * queue =
     match t with
     | Leaf e -> (e, Empty)
     | OneBranch (p, c) -> (c, Tree(Leaf p))
@@ -911,7 +911,22 @@ struct
           | Empty, OneBranch (e1, e2) -> (bot, Tree (TwoBranch(Even, node, Leaf e1, Leaf e2)))
           | Empty, TwoBranch (Even, n2, l2, r2) -> (bot, Tree(TwoBranch(Odd, node, Leaf r2, OneBranch(n2, l2))))
           | Empty, _ -> failwith "Unbalanced Tree!"
-          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, tre, r)))))
+          | Tree tre, _ -> (bot, Tree (TwoBranch(bal, node, tre, r)))))*)
+
+  let rec get_last (t : tree) : elt * queue =
+    match t with
+    | Leaf e -> (e, Empty)
+    | OneBranch (p, c) -> (c, Tree(Leaf p))
+    | TwoBranch (Odd, node, l, r) -> 
+       (match get_last l with
+       | (e, Empty) -> (e, Tree (OneBranch (node, get_top r)))
+       | (e, Tree l') -> (e, Tree (TwoBranch (Even, node, l', r))))
+    | TwoBranch (Even, node, l, r) ->
+       match get_last r with
+       | (e, Empty) -> (e, Tree (OneBranch (node, get_top l)))
+       | (e, Tree r') -> (e, Tree (TwoBranch (Odd, node, l, r')))
+            
+
 
   (* Implements the algorithm described in the writeup. You must finish this
    * implementation, as well as the implementations of get_last and fix, which
@@ -992,17 +1007,17 @@ module IntListQueue = (ListQueue(IntCompare) :
                         PRIOQUEUE with type elt = IntCompare.t)
 module IntHeapQueue = (BinaryHeap(IntCompare) :
                         PRIOQUEUE with type elt = IntCompare.t)
-(*
+
 module IntTreeQueue = (TreeQueue(IntCompare) :
                         PRIOQUEUE with type elt = IntCompare.t)
-*)
+
 
 (* store the whole modules in these variables *)
 let list_module = (module IntListQueue : PRIOQUEUE with type elt = IntCompare.t)
 let heap_module = (module IntHeapQueue : PRIOQUEUE with type elt = IntCompare.t)
-(*
+
 let tree_module = (module IntTreeQueue : PRIOQUEUE with type elt = IntCompare.t)
-*)
+
 
 (* Implements sort using generic priority queues. *)
 let sort (m : (module PRIOQUEUE with type elt=IntCompare.t)) (lst : int list) =
@@ -1027,9 +1042,9 @@ let heapsort = sort heap_module
  * implementation is *almost* equivalent to treesort;
  * a real treesort relies on self-balancing binary search trees *)
 
-(*
+
 let treesort = sort tree_module
-*)
+
 
 (* Sorting with a priority queue with an underlying unordered list
  * implementation is equivalent to heap sort! If your implementation of
@@ -1090,4 +1105,55 @@ module IntStringSort = Hsort(IntStringCompare)
  * See the Sys module for functions related to keeping track of time *)
 
 (*>* Problem N.2 *>*)
-let minutes_spent : int = raise ImplementMe
+
+let randlist (n : int) : int list =
+  let rec randint (n : int) (lst : int list) : int list =
+    if n = 0
+    then lst
+    else (randint (n-1) ((Random.int Int.max_value)::lst)) in
+  (randint n [])   
+;;
+
+let timesort (f : int list -> int list) (n : int) =
+  let xs = (randlist n) in
+  let start = Unix.gettimeofday() in
+  let run = f xs in
+  let stop = Unix.gettimeofday() in
+  stop -. start
+;;
+
+timesort heapsort 1000000;;
+timesort treesort 1000000;;
+timesort selectionsort 10000;;
+
+
+(* Test Results:
+ * Heap sort:
+ * 1000 elements: 0.0051069 seconds
+ * 10000 elements: 0.09926 seconds
+ * 100000 elements: 1.0405 seconds
+ * 1000000 elements: 14.393 seconds
+ *
+ * Tree sort:
+ * 1000 elements: 0.0031710 seconds
+ * 10000 elements: 0.062144 seconds
+ * 100000 elements: 0.56301 seconds
+ * 1000000 elements: 7.1989 seconds
+ *
+ * Selection sort:
+ * 100 elements: 0.00067902 seconds
+ * 1000 elements: 0.053416 seconds
+ * 10000 elements: 2.1371 seconds
+ *
+ * Since an increase in the number of elements by one order of magnitude
+ * causes the time to increase by two orders, selection sort seems to be O(n^2)  
+ * complexity. This makes sense because when we insert and remove an element,
+ * we have to traverse the list twice.
+ *
+ * With increasing number of elements, heap sort and tree sort both increase similarly in runtime
+ * although tree sort is slightly better than heap sort. They both perform much better than selection sort,
+ * which is consistent with them having O(nlog(n)) complexity.
+ *)
+
+
+let minutes_spent : int = 840;;
