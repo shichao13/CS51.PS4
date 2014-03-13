@@ -357,13 +357,25 @@ struct
   (* TODO:
    * Implement fold. Read the specification in the DICT signature above. *)
   let rec fold (f: key -> value -> 'a -> 'a) (u: 'a) (d: dict) : 'a =
-    raise TODO
+    match d with
+    | Leaf -> u
+    | Two (l,(k,v), r) -> f k v (fold f (fold f u r) l)
+    | Three (l, (k1,v1), m, (k2,v2), r) -> f k1 v1 (fold f (fold f (fold f u r) m) l)
 
   (* TODO:
    * Implement these to-string functions *)
   let string_of_key = D.string_of_key
   let string_of_value = D.string_of_value
-  let string_of_dict (d: dict) : string = failwith "CONSTRUCT ME"
+  let rec string_of_dict (d: dict) : string = 
+    match d with
+    | Leaf -> ""
+    | Two (l,(k,v),r) -> 
+      "(" ^ (string_of_key k) ^ ": " ^ (string_of_value v) ^ "), " 
+      ^ (string_of_dict l) ^ (string_of_dict r)
+    | Three (l,(k1,v1),m,(k2,v2),r) ->
+      "(" ^ (string_of_key k1) ^ ": " ^ (string_of_value v1) ^ "), " ^
+      "(" ^ (string_of_key k2) ^ ": " ^ (string_of_value v2) ^ "), " 
+      ^ (string_of_dict l) ^ (string_of_dict m) ^ (string_of_dict r)
 
   (* Debugging function. This will print out the tree in text format.
    * Use this function to see the actual structure of your 2-3 tree. *
@@ -640,7 +652,7 @@ struct
    * in our dictionary and returns it as an option, or return None
    * if the key is not in our dictionary. *)
   let rec lookup (d: dict) (k: key) : value option =
-    match d with
+    match d with 
     (* Obviously doesn't exist if we have a leaf *)
     | Leaf -> None
 
@@ -665,9 +677,8 @@ struct
   (* TODO:
    * Write a function to test if a given key is in our dictionary *)
   let member (d: dict) (k: key) : bool =
-    match lookup d k with
-    | None -> false
-    | Some _ -> true
+    (lookup d k) <> None
+
 
   (* TODO:
    * Write a function that removes any (key,value) pair from our
@@ -690,7 +701,10 @@ struct
 
   (* How are you testing that you tree is balanced?
    * ANSWER:
-   *    _______________
+   *    We are testing that the tree is balanced by using a helper function 
+   *    to iterate over the tree calculating the length of each branck. Then,
+   *    we compare the branches to each other, searching for uneven lengths. If
+   *    found, we know the tree isn't balanced. 
    *)
   (* Should be do-able in fold, but I'm not good with folds D:*)
   let rec val_compare (a: int list) (c: int) : bool =
