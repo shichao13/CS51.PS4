@@ -143,7 +143,7 @@ struct
             string_of_int info.year ^ "\n" ^ info.concentration)
 
     let f = (-)
-    let fold = List.fold_right ~f
+    let fold = List.fold_right ~f:
 
 end
 

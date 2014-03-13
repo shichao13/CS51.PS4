@@ -1,4 +1,15 @@
 (* Random Code we no longer use *)
+  (* Helper function for get_last. Finds the odd side*)
+  let get_odd_side (l : tree) (r : tree) : bool =
+    match l with
+    (* If leaf, the other side is one branch (we'll never run into a starting
+    tree. So, we just set it to the right side of the tree. *)
+    | Leaf _ -> true
+    | OneBranch (_, _) -> false
+    | TwoBranch (bal, _, _, _) ->
+      (match bal with
+      | Odd -> false
+      | Even -> true)
 
   let test_add () =
     let x = C.generate () in

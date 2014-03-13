@@ -1,6 +1,6 @@
 (* PS4
  * CS51 Spring 2014
- * Author(s): YOUR NAME(S) HERE
+ * Author(s): Michael Ma, Allen Chen
  *)
 
 (* NOTE: Please read (and understand) all of the comments in this file! *)
@@ -676,18 +676,6 @@ let _ = IntTQueue.run_tests ()
 (*****************************************************************************)
 
 (*>* Problem 4.0 *>*)
-
-(* Now for the good stuff :-) Implement a priority queue using a binary heap.
- * See the pset spec for more info.
- *
- * You should implement a min-heap, i.e. the top of your heap stores the
- * smallest element in the entire heap.
- *
- * Note that, unlike for your tree and list implementations of priority queues,
- * you do *not* need to worry about the order in which elements of equal
- * priority are removed. Yes, this means it's not really a "queue", but
- * it is easier to implement without that restriction.
- *)
 module BinaryHeap(C : COMPARABLE) : PRIOQUEUE with type elt = C.t =
 struct
 
@@ -789,28 +777,19 @@ struct
     | Empty -> raise QueueEmpty
     | Tree t -> t
 
-  (* Helper function for get_last. Finds the odd side*)
-  let get_odd_side (l : tree) (r : tree) : bool =
-    match l with
-    (* If leaf, the other side is one branch (we'll never run into a starting
-    tree. So, we just set it to the right side of the tree. *)
-    | Leaf _ -> true
-    | OneBranch (_, _) -> false
-    | TwoBranch (bal, _, _, _) ->
-      (match bal with
-      | Odd -> false
-      | Even -> true)
-
   (* Gets the last node of the tree *)
   let rec get_last (t : tree) : elt * queue =
     match t with
     | Leaf e -> (e, Empty)
     | OneBranch (p, c) -> (c, Tree(Leaf p))
-    | TwoBranch (Odd, node, l, r) -> 
+    | TwoBranch (Odd, node, l, r) ->
+       (* matches the left side - we always will have the new node on left*) 
        (match get_last l with
        | (e, Empty) -> (e, Tree (OneBranch (node, get_top r)))
        | (e, Tree l') -> (e, Tree (TwoBranch (Even, node, l', r))))
+
     | TwoBranch (Even, node, l, r) ->
+      (* Even means that we are going to the right *)
        match get_last r with
        | (e, Empty) -> (e, Tree (OneBranch (node, get_top l)))
        | (e, Tree r') -> (e, Tree (TwoBranch (Odd, node, l, r')))
@@ -878,6 +857,7 @@ let test_get_last () =
   let Tree t5 = (add x (add x2 empty)) in
   assert (get_last t5 = (x2, add x empty))
 
+(* Since there is no way to test fix, we are testing it within take*)
 let test_take () =
   let x  = C.generate       () in
   let x2 = C.generate_gt x  () in
@@ -903,25 +883,6 @@ module IntHeap = BinaryHeap(IntCompare)
 
 let () = IntHeap.run_tests ()
 
-
-(* Now to actually use our priority queue implementations for something useful!
- *
- * Priority queues are very closely related to sorts. Remember that removal of
- * elements from priority queues removes elements in highest priority to lowest
- * priority order. So, if your priority for an element is directly related to
- * the value of the element, then you should be able to come up with a simple
- * way to use a priority queue for sorting...
- *
- * In OCaml 3.12, modules can be turned into first-class
- * values, and so can be passed to functions! Here, we're using that to avoid
- * having to create a functor for sort. Creating the appropriate functor
- * is a challenge problem :-)
- *)
-
-(* The following code is simply using our functors and passing in a
- * COMPARABLE module for integers, resulting in priority queues
- * tailored for ints
- *)
 module IntListQueue = (ListQueue(IntCompare) :
                         PRIOQUEUE with type elt = IntCompare.t)
 module IntHeapQueue = (BinaryHeap(IntCompare) :
@@ -930,13 +891,11 @@ module IntHeapQueue = (BinaryHeap(IntCompare) :
 module IntTreeQueue = (TreeQueue(IntCompare) :
                         PRIOQUEUE with type elt = IntCompare.t)
 
-
 (* store the whole modules in these variables *)
 let list_module = (module IntListQueue : PRIOQUEUE with type elt = IntCompare.t)
 let heap_module = (module IntHeapQueue : PRIOQUEUE with type elt = IntCompare.t)
 
 let tree_module = (module IntTreeQueue : PRIOQUEUE with type elt = IntCompare.t)
-
 
 (* Implements sort using generic priority queues. *)
 let sort (m : (module PRIOQUEUE with type elt=IntCompare.t)) (lst : int list) =
@@ -949,30 +908,18 @@ let sort (m : (module PRIOQUEUE with type elt=IntCompare.t)) (lst : int list) =
   let pq = List.fold_right ~f:P.add ~init:P.empty lst in
   List.rev (extractor pq [])
 
-
-(* Hurray!! Now, we can pass in the modules into sort and get out
- * different sorts!! *)
-
 (* Sorting with a priority queue with an underlying heap
  * implementation is equivalent to heap sort! *)
 let heapsort = sort heap_module
 
-(* Sorting with a priority queue with your underlying tree
- * implementation is *almost* equivalent to treesort;
- * a real treesort relies on self-balancing binary search trees *)
-
-
+(* Sorting with a priority queue with your underlying tree*)
 let treesort = sort tree_module
 
-
 (* Sorting with a priority queue with an underlying unordered list
- * implementation is equivalent to heap sort! If your implementation of
- * ListQueue used ordered ilsts, then this is really insertion sort *)
+ * implementation is equivalent to heap sort! *)
 let selectionsort = sort list_module
 
-(* You should test that these sorts all correctly work, and that
- * lists are returned in non-decreasing order!! *)
-
+(* Test! *)
 (* Random int list and its sorted version. *)
 let lst = [100; 7; 29; 4; 18]
 let sorted = [4; 7; 18; 29; 100]
@@ -982,24 +929,19 @@ assert(heapsort lst = sorted);;
 assert(treesort lst = sorted);;
 assert(selectionsort lst = sorted);;
 
-
 (*****************************************************************************)
 (*                               Part N                                      *)
 (*****************************************************************************)
 
 (*>* Problem N.0 *>*)
-(* *Highly recommended (and easy)* Challenge problem:
- * Above, we only allow for sorting on int lists. Write a functor that will take
- * a COMPARABLE module as an argument, and allows for sorting on the
- * type defined by that module. You should use your BinaryHeap module.
- *)
-
+(* Module's signature - only need to sort*)
 module type SORT =
 sig
   type c
   val sort : c list -> c list
 end
 
+(* New module based on thsi signiature *)
 module Hsort(C : COMPARABLE) : SORT with type c = C.t =
 struct
 
@@ -1027,15 +969,39 @@ assert(IntStringSort.sort [(100, "a"); (7, "b"); (29, "c"); (4, "d"); (18, "e")]
 
 
 (*>* Problem N.1 *>*)
-(* Challenge problem:
- * Now that you are learning about asymptotic complexity, try to
- * write some functions to analyze the running time of
- * the three different sorts. Record in a comment here the results of
- * running each type of sort on lists of various sizes (you may find
- * it useful to make a function to generate large lists).
- * Of course include your code for how you performed the measurements below.
- * Be convincing when establishing the algorithmic complexity of each sort.
- * See the Sys module for functions related to keeping track of time *)
+(* Test Results:
+ * Heap sort:
+ * 1000 elements: 0.0051069 seconds
+ * 10000 elements: 0.09926 seconds (18x)
+ * 100000 elements: 1.0405 seconds (10x)
+ * 1000000 elements: 14.393 seconds (14x)
+ *
+ * Tree sort:
+ * 1000 elements: 0.0031710 seconds
+ * 10000 elements: 0.062144 seconds (20x)
+ * 100000 elements: 0.56301 seconds (9x)
+ * 1000000 elements: 7.1989 seconds (13x)
+ *
+ * Selection sort:
+ * 100 elements: 0.00067902 seconds
+ * 1000 elements: 0.053416 seconds (78x)
+ * 10000 elements: 2.1371 seconds  (40x)
+ *
+ * Since an increase in the number of elements by one order of magnitude
+ * causes the time to increase by two orders, selection sort seems to be O(n^2)  
+ * complexity. This makes sense because when we insert and remove an element,
+ * we have to traverse the list twice. This implies that we traverse a list of
+ * length n, 2n times, resulting in an overall complexity of O(n^2).
+ *
+ *
+ * With increasing number of elements, heap sort and tree sort both increase 
+ * similarly in runtime although tree sort is slightly better than heap sort.
+ * They both perform much better than selection sort, which is consistent 
+ * with them having O(nlog(n)) complexity. For both, this makes sense. For
+ * heapsort, we pull the last node from the heap n times, each time of which
+ * we search through the depth of the heap, taking log n time. Tree sort is
+ * very similar - we search through the tree n times, each taking log n time
+ *)
 
 (*>* Problem N.2 *>*)
 
@@ -1061,35 +1027,5 @@ let timesort (f : int list -> int list) (n : int) =
 timesort heapsort 1000000;;
 timesort treesort 1000000;;
 timesort selectionsort 10000;;
-
-
-(* Test Results:
- * Heap sort:
- * 1000 elements: 0.0051069 seconds
- * 10000 elements: 0.09926 seconds
- * 100000 elements: 1.0405 seconds
- * 1000000 elements: 14.393 seconds
- *
- * Tree sort:
- * 1000 elements: 0.0031710 seconds
- * 10000 elements: 0.062144 seconds
- * 100000 elements: 0.56301 seconds
- * 1000000 elements: 7.1989 seconds
- *
- * Selection sort:
- * 100 elements: 0.00067902 seconds
- * 1000 elements: 0.053416 seconds
- * 10000 elements: 2.1371 seconds
- *
- * Since an increase in the number of elements by one order of magnitude
- * causes the time to increase by two orders, selection sort seems to be O(n^2)  
- * complexity. This makes sense because when we insert and remove an element,
- * we have to traverse the list twice.
- *
- * With increasing number of elements, heap sort and tree sort both increase similarly in runtime
- * although tree sort is slightly better than heap sort. They both perform much better than selection sort,
- * which is consistent with them having O(nlog(n)) complexity.
- *)
-
 
 let minutes_spent : int = 900;;
