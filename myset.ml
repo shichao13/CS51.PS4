@@ -306,7 +306,7 @@ struct
     | Some (k, v, rest) -> Some (k, rest)
 
   let fold (f: (elt -> 'a -> 'a)) (t1: 'a) (s: set) : 'a = 
-    failwith "to be implemented"
+    D.fold (fun k v a-> f k a) t1 s
 
   let string_of_elt = D.string_of_key
   let string_of_set s = D.string_of_dict s
