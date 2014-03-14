@@ -414,8 +414,8 @@ struct
    * result of performing the upward phase on w. *)
   let insert_upward_two (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (x_other: dict) : kicked =
-    let wkey, wval = w in
-    let xkey, xval = x in
+    let (wkey, _) = w in
+    let (xkey, _) = x in
     match D.compare wkey xkey with
     | Greater -> Done (Three (x_other, x, w_left, w, w_right))
     | _ -> Done (Three (w_left, w, w_right, x, x_other))
@@ -434,19 +434,15 @@ struct
    * new tree as a result of performing the upward phase on w. *)
   let rec insert_upward_three (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
-    let wkey, wval = w in
-    let xkey, xval = x in
-    let ykey, yval = y in
-    match D.compare xkey ykey with
-    | Greater -> insert_upward_three w w_left w_right y x other_left other_right
-    | _ ->
+    let (wkey, _) = w in
+    let (xkey, _) = x in
+    let (ykey, _) = y in
       match D.compare wkey xkey with
-      | Equal -> Up (Two (w_left, w, w_right), x, Two(other_left, y, other_right))
-      | Less -> Up (Two (w_left, w, w_right), x, Two(other_left, y, other_right))
+      | Equal | Less -> Up (Two (w_left, w, w_right), x, Two(other_left, y, other_right))
       | Greater ->
         match D.compare wkey ykey with
         | Greater -> Up (Two (other_left, x, other_right), y, Two (w_left, w, w_right))
-        | _ -> Up (Two (w_left, x, w_right), w, Two(other_left, y, other_right))
+        | _ -> Up (Two (other_left, x, w_left), w, Two(w_right, y, other_right))
 
   (* Downward phase for inserting (k,v) into our dictionary d.
    * The downward phase returns a "kicked" up configuration, where
@@ -494,12 +490,12 @@ struct
     match D.compare k k1 with
     | Greater -> 
       (match insert_downward right k v with
-      | Up (wleft, w, wright) -> insert_upward_two w wleft wright (k1, v) left
-      | Done tree -> Done (Two (left, (k1, v1), tree)))
+      | Up (wleft, w, wright) -> insert_upward_two w wleft wright (k1, v1) left
+      | Done tree -> Done(Two(left,(k1, v1),tree)))
     | _ -> 
       (match insert_downward left k v with
       | Up (wleft, w, wright) -> insert_upward_two w wleft wright (k1, v1) right
-      | Done tree -> Done (Two (tree, (k1, v1), right)))
+      | Done tree -> Done(Two(tree,(k1, v1),right)))
 
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
@@ -513,11 +509,11 @@ struct
       | Greater -> 
         (match insert_downward right k v with
         | Up (wleft, w, wright) -> insert_upward_three w wleft wright (k1, v1) (k2, v2) left middle
-        | Done tree -> Done ( Three (left, (k1, v1), middle, (k2, v2), tree)))
+        | Done tree -> Done(Three(left,(k1, v1),middle,(k2, v2),tree)))
       | _ -> 
         (match insert_downward middle k v with
         | Up (wleft, w, wright) -> insert_upward_three w wleft wright (k1, v1) (k2, v2) left right
-        | Done tree -> Done ( Three (left, (k1, v1), tree, (k2,  v2), right))))
+        | Done tree -> Done (Three(left,(k1, v1),tree,(k2,  v2),right))))
     | _ -> 
       (match insert_downward left k v with
       | Up (wleft, w, wright) -> insert_upward_three w wleft wright (k1, v1) (k2, v2) middle right
@@ -541,8 +537,8 @@ struct
     match dir,n,left,right with
       | Left2,x,l,Two(m,y,r) -> Hole(rem,Three(l,x,m,y,r))
       | Right2,y,Two(l,x,m),r -> Hole(rem,Three(l,x,m,y,r))
-      | Left2,x,a,Three(b,y,c,z,d) -> Hole(rem,Two(Two(a,x,b),y,Two(c,z,d)))
-      | Right2,z,Three(a,x,b,y,c),d -> Hole(rem,Two(Two(a,x,b),y,Two(c,z,d)))
+      | Left2,x,a,Three(b,y,c,z,d) -> Absorbed(rem,Two(Two(a,x,b),y,Two(c,z,d)))
+      | Right2,z,Three(a,x,b,y,c),d -> Absorbed(rem,Two(Two(a,x,b),y,Two(c,z,d)))
       | Left2,_,_,_ | Right2,_,_,_ -> Absorbed(rem,Two(Leaf,n,Leaf))
 
   (* Upward phase for removal where the parent of the hole is a Three node.
@@ -564,7 +560,7 @@ struct
       | Mid3,w,x,a,b,Three(c,y,d,z,e) -> 
         Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
       | Right3,w,z,a,Three(b,x,c,y,d),e -> 
-        Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
+        Absorbed(rem,Three(Two(a,w,b),x,Two(c,y,d),z,e))
       | Left3,_,_,_,_,_ | Mid3,_,_,_,_,_ | Right3,_,_,_,_,_ ->
         Absorbed(rem,Three(Leaf,n1,Leaf,n2,Leaf))
 
@@ -689,19 +685,19 @@ struct
     | Two (d1, (ky, va), d2) ->
       (match D.compare k ky with
       | Equal -> Some va
-      | Greater -> lookup d1 k
-      | Less -> lookup d2 k)
+      | Greater -> lookup d2 k
+      | Less -> lookup d1 k)
 
     (* Three case is slightly more complicated - match with left side and then right*)
     | Three (d1, (ky1, va1), d2, (ky2, va2), d3) ->
       match D.compare k ky1 with
       | Equal -> Some va1
-      | Greater -> lookup d1 k
-      | Less ->
+      | Less -> lookup d1 k
+      | Greater ->
         match D.compare k ky2 with
         | Equal -> Some va2
-        | Greater -> lookup d2 k
-        | Less -> lookup d3 k
+        | Greater -> lookup d3 k
+        | Less -> lookup d2 k
 
   (* TODO:
    * Write a function to test if a given key is in our dictionary *)
@@ -935,10 +931,10 @@ IntStringListDict.run_tests();;
  *
  * Uncomment out the lines below when you are ready to test your
  * 2-3 tree implementation. *)
-(*
+
 module IntStringBTDict = BTDict(IntStringDictArg) ;;
 IntStringBTDict.run_tests();;
-*)
+
 
 
 
@@ -951,6 +947,6 @@ module Make (D:DICT_ARG) : (DICT with type key = D.key
   with type value = D.value) =
   (* Change this line to the BTDict implementation when you are
    * done implementing your 2-3 trees. *)
-  lAssocListDict(D)
-   (*BTDict(D)*)
+  (*AssocListDict(D)*)
+  BTDict(D)
 
