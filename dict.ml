@@ -480,23 +480,48 @@ struct
    * with the appropriate arguments. *)
   let rec insert_downward (d: dict) (k: key) (v: value) : kicked =
     match d with
-      | Leaf -> raise TODO (* base case! see handout *)
-      | Two(left,n,right) -> raise TODO (* mutual recursion *)
-      | Three(left,n1,middle,n2,right) -> raise TODO (* mutual recursion *)
+      | Leaf -> Done (Two (Leaf, (k, v), Leaf))
+      | Two(left,n,right) -> insert_downward_two (k, v) n left right
+      | Three(left,n1,middle,n2,right) -> insert_downward_three (k, v) n1 n2 left middle right
 
   (* Downward phase on a Two node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) is the (key,value) of the current Two node, and left and right
    * are the two subtrees of the current Two node. *)
   and insert_downward_two ((k,v): pair) ((k1,v1): pair)
       (left: dict) (right: dict) : kicked =
-    raise TODO
+    match D.compare k k1 with
+    | Equal -> failwith "Keys are Equal"
+    | Less -> 
+      (match insert_downward left k v with
+      | Up _ -> failwith "Insert did not work"
+      | Done tree -> Done (Two (tree, (k1, v1), right)))
+    | Greater -> 
+      match insert_downward right k v with
+      | Up _ -> failwith "Insert did not work"
+      | Done tree -> Done (Two (left, (k1, v1), tree))
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) and (k2,v2) are the two (key,value) pairs in our Three node, and
    * left, middle, and right are the three subtrees of our current Three node *)
   and insert_downward_three ((k,v): pair) ((k1,v1): pair) ((k2,v2): pair)
       (left: dict) (middle: dict) (right: dict) : kicked =
-    raise TODO
+    match D.compare k k1 with
+    | Equal -> failwith "Keys are Equal!"
+    | Less -> 
+      (match insert_downward left k v with
+      | Up _ -> failwith "Insert did not work"
+      | Done tree -> Done ( Three (tree, (k1, v1), middle, (k2, v2), right)))
+    | Greater ->
+      match D.compare k k2 with
+      | Equal -> failwith "Keys are Equal!"
+      | Less -> 
+        (match insert_downward middle k v with
+        | Up _ -> failwith "Insert did not work"
+        | Done tree -> Done ( Three (left, (k1, v1), tree, (k2,  v2), right)))
+      | Greater -> 
+        (match insert_downward right k v with
+        | Up _ -> failwith "Insert did not work"
+        | Done tree -> Done ( Three (left, (k1, v1), middle, (k2, v2), tree)))
 
   (* We insert (k,v) into our dict using insert_downward, which gives us
    * "kicked" up configuration. We return the tree contained in the "kicked"
@@ -515,9 +540,9 @@ struct
       (left: dict) (right: dict) (dir: direction2) : hole =
     match dir,n,left,right with
       | Left2,x,l,Two(m,y,r) -> Hole(rem,Three(l,x,m,y,r))
-      | Right2,y,Two(l,x,m),r -> raise TODO
-      | Left2,x,a,Three(b,y,c,z,d) -> raise TODO
-      | Right2,z,Three(a,x,b,y,c),d -> raise TODO
+      | Right2,y,Two(l,x,m),r -> Hole(rem,Three(l,x,m,y,r))
+      | Left2,x,a,Three(b,y,c,z,d) -> Hole(rem,Two(Two(a,x,b),y,Two(c,z,d)))
+      | Right2,z,Three(a,x,b,y,c),d -> Hole(rem,Two(Two(a,x,b),y,Two(c,z,d)))
       | Left2,_,_,_ | Right2,_,_,_ -> Absorbed(rem,Two(Leaf,n,Leaf))
 
   (* Upward phase for removal where the parent of the hole is a Three node.
@@ -529,13 +554,17 @@ struct
       (left: dict) (middle: dict) (right: dict) (dir: direction3) : hole =
     match dir,n1,n2,left,middle,right with
       | Left3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
-      | Mid3,y,z,Two(a,x,b),c,d -> raise TODO
-      | Mid3,x,y,a,b,Two(c,z,d) -> raise TODO
-      | Right3,x,z,a,Two(b,y,c),d -> raise TODO
-      | Left3,w,z,a,Three(b,x,c,y,d),e -> raise TODO
-      | Mid3,y,z,Three(a,w,b,x,c),d,e -> raise TODO
-      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> raise TODO
-      | Right3,w,z,a,Three(b,x,c,y,d),e -> raise TODO
+      | Mid3,y,z,Two(a,x,b),c,d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
+      | Mid3,x,y,a,b,Two(c,z,d) -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
+      | Right3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
+      | Left3,w,z,a,Three(b,x,c,y,d),e -> 
+        Absorbed(rem,Three(Two(a,w,b),x,Two(c,y,d),z,e))
+      | Mid3,y,z,Three(a,w,b,x,c),d,e -> 
+        Absorbed(rem,Three(Two(a,w,b),x,Two(c,y,d),z,e))
+      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> 
+        Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
+      | Right3,w,z,a,Three(b,x,c,y,d),e -> 
+        Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
       | Left3,_,_,_,_,_ | Mid3,_,_,_,_,_ | Right3,_,_,_,_,_ ->
         Absorbed(rem,Three(Leaf,n1,Leaf,n2,Leaf))
 
