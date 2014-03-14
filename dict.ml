@@ -490,7 +490,7 @@ struct
   and insert_downward_two ((k,v): pair) ((k1,v1): pair)
       (left: dict) (right: dict) : kicked =
     match D.compare k k1 with
-    | Equal -> failwith "Keys are Equal"
+    | Equal -> Done(Two(left, (k,v), right))
     | Less -> 
       (match insert_downward left k v with
       | Up _ -> failwith "Insert did not work"
@@ -506,14 +506,14 @@ struct
   and insert_downward_three ((k,v): pair) ((k1,v1): pair) ((k2,v2): pair)
       (left: dict) (middle: dict) (right: dict) : kicked =
     match D.compare k k1 with
-    | Equal -> failwith "Keys are Equal!"
+    | Equal -> Done(Three(left,(k,v),middle,(k2,v2),right))
     | Less -> 
       (match insert_downward left k v with
       | Up _ -> failwith "Insert did not work"
       | Done tree -> Done ( Three (tree, (k1, v1), middle, (k2, v2), right)))
     | Greater ->
       match D.compare k k2 with
-      | Equal -> failwith "Keys are Equal!"
+      | Equal -> Done(Three(left,(k1,v1),middle,(k,v),right))
       | Less -> 
         (match insert_downward middle k v with
         | Up _ -> failwith "Insert did not work"
@@ -921,10 +921,10 @@ IntStringListDict.run_tests();;
  *
  * Uncomment out the lines below when you are ready to test your
  * 2-3 tree implementation. *)
-(*
+
 module IntStringBTDict = BTDict(IntStringDictArg) ;;
 IntStringBTDict.run_tests();;
-*)
+
 
 
 
@@ -936,6 +936,6 @@ module Make (D:DICT_ARG) : (DICT with type key = D.key
   with type value = D.value) =
   (* Change this line to the BTDict implementation when you are
    * done implementing your 2-3 trees. *)
-  AssocListDict(D)
-  (* BTDict(D) *)
+  (*AssocListDict(D)*)
+   BTDict(D) 
 

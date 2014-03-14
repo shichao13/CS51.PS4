@@ -318,8 +318,112 @@ struct
   (* comprehensive tests to test ALL your functions.              *)
   (****************************************************************)
 
+
+  let insert_list (d: set) (lst: elt list) : set =
+    List.fold_left lst ~f:(fun r k -> insert k r) ~init:d
+
+  let rec generate_random_list (size: int) : elt list =
+    if size <= 0 then []
+    else (C.gen_random()) :: (generate_random_list (size - 1))
+
+  (* Generates a list containing an ordered sequence of values *)
+  let generate_sequential_list (size: int) : elt list =
+    let rec gen_seq c size =
+      if size <= 0 then []
+      else c :: (gen_seq (C.gen_gt(c)()) (size - 1)) in
+    gen_seq (C.gen()) size
+  
+  let test_insert () =
+    let elts = generate_random_list 100 in
+    let s1 = insert_list empty elts in
+    List.iter elts ~f:(fun k -> assert(member s1 k)) ;
+    ()
+
+  let test_remove () =
+    let elts = generate_random_list 100 in
+    let s1 = insert_list empty elts in
+    let s2 = List.fold_right elts ~f:(fun k r -> remove k r) ~init:s1 in
+    List.iter elts ~f:(fun k -> assert(not (member s2 k))) ;
+    ()
+
+  let test_union () =
+    let elts1 = generate_random_list 100 in
+    let s1 = insert_list empty elts1 in
+    let elts2 = generate_random_list 100 in
+    let s2 = insert_list empty elts2 in
+    let s1s2 = union s1 s2 in
+    List.iter elts1 ~f:(fun k -> assert(member s1s2 k)) ;
+    List.iter elts2 ~f:(fun k -> assert(member s1s2 k)) ;
+    assert((union empty empty) = empty);
+    assert((union s1 empty) = s1);
+    ()
+
+  let test_intersect () =
+    let elts1 = generate_random_list 100 in
+    let s1 = insert_list empty elts1 in
+    let elts2 = generate_random_list 100 in
+    let s2 = insert_list empty elts2 in
+    let ints1s1 = intersect s1 s1 in
+    List.iter elts1 ~f:(fun k -> assert(member ints1s1 k)) ;
+    let ints1empty = intersect s1 empty in
+    List.iter elts1 ~f:(fun k -> assert(not (member ints1empty k))) ;
+    ()
+
+  let test_member () =
+    let elts = generate_random_list 100 in
+    List.iter elts ~f:(fun k -> assert(not (member empty k))) ;
+    let s1 = insert_list empty elts in
+    List.iter elts ~f:(fun k -> assert((member s1 k))) ;
+    let s2 = List.fold_right elts ~f:(fun k r -> remove k r) ~init:s1 in
+    List.iter elts ~f:(fun k -> assert(not (member s2 k))) ;
+    ()
+
+  let rec choose_empty (size: int) (s: set): int =
+    match choose s with
+    | None -> size
+    | Some (k, s) -> choose_empty (size + 1) s
+  
+  let test_choose () =
+    let elts = generate_sequential_list 100 in
+    let s1 = insert_list empty elts in
+    List.iter elts ~f:(fun k -> assert((choose s1) <> None)) ;
+    assert((choose_empty 0 s1) = 100);
+    assert((choose empty) = None);
+    ()
+
+  let test_fold () =
+    let elts1 = C.gen () in
+    let elts2 = C.gen_gt elts1 () in
+    let elts3 = C.gen_gt elts2 () in
+    let s1 = insert_list empty [elts1;elts2;elts3] in
+    assert (fold (fun x y -> if x > y then x else y) elts1 s1 = elts3) ;
+    ()
+
+  let test_is_empty () =
+    let elts1 = generate_random_list 100 in
+    let s1 = insert_list empty elts1 in
+    assert(not(is_empty s1));
+    assert(is_empty empty);
+    ()
+
+  let test_singleton () =
+    let elts = C.gen() in
+    let s1 = singleton elts in
+    assert (is_empty (remove elts s1));
+    ()
+
+
   (* add your test functions to run_tests *)
   let run_tests () =
+    test_insert () ;
+    test_remove () ;
+    test_union () ;
+    test_intersect () ;
+    test_member () ;
+    test_choose () ;
+    test_fold () ;
+    test_is_empty () ;
+    test_singleton () ; 
     ()
 end
 
@@ -338,10 +442,10 @@ IntListSet.run_tests();;
  *
  * Uncomment out the lines below when you are ready to test your
  * 2-3 dict set implementation *)
-(*
+
 module IntDictSet = DictSet(IntComparable) ;;
 IntDictSet.run_tests();;
-*)
+
 
 
 (******************************************************************)
@@ -351,6 +455,6 @@ IntDictSet.run_tests();;
 module Make(C : COMPARABLE) : (SET with type elt = C.t) =
   (* Change this line to use our dictionary implementation when your are
    * finished. *)
-  ListSet (C)
-  (* DictSet (C) *)
+  (* ListSet (C) *)
+  DictSet (C)
 
