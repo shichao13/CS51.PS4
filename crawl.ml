@@ -92,7 +92,7 @@ let rec crawl (n:int) (frontier: LinkSet.set)
     crawl (n-1) frontier visited d
   else if n = 0 then d else
     match CrawlerServices.get_page link with
-    | None -> failwith "Link Does Not Exist - Check Database Again!"
+    | None -> d
     | Some page ->
     (* May not be passing frontier by reference *)
     let d = addwords link page.words d in

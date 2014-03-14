@@ -289,7 +289,7 @@ struct
   
   let rec intersect_construct (s1: set) (s2: set) (output: set) : set =
     match D.choose s1 with
-    | empty -> output
+    | None -> output
     | Some (k, v, xs) -> 
       if member s2 k then 
         intersect_construct xs s2 (D.insert output k v) 
@@ -342,6 +342,7 @@ struct
   let test_remove () =
     let elts = generate_random_list 100 in
     let s1 = insert_list empty elts in
+    (* let () = Printf.printf "%s" (string_of_set s1) in *)
     let s2 = List.fold_right elts ~f:(fun k r -> remove k r) ~init:s1 in
     List.iter elts ~f:(fun k -> assert(not (member s2 k))) ;
     ()
@@ -359,11 +360,14 @@ struct
     ()
 
   let test_intersect () =
-    let elts1 = generate_random_list 100 in
+    let elts1 = generate_sequential_list 100 in
     let s1 = insert_list empty elts1 in
-    let elts2 = generate_random_list 100 in
+    let elts2 = generate_sequential_list 100 in
     let s2 = insert_list empty elts2 in
     let ints1s1 = intersect s1 s1 in
+    (*let () = Printf.printf "%s" (string_of_set s1) in 
+    let () = Printf.printf "spacegoesherehi" in 
+    let () = Printf.printf "%s" (string_of_set ints1s1) in *)
     List.iter elts1 ~f:(fun k -> assert(member ints1s1 k)) ;
     let ints1empty = intersect s1 empty in
     List.iter elts1 ~f:(fun k -> assert(not (member ints1empty k))) ;
