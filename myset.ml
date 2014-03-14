@@ -280,11 +280,11 @@ struct
   let member = D.member
 
 
+  let fold (f: (elt -> 'a -> 'a)) (t1: 'a) (s: set) : 'a = 
+    D.fold (fun k v a-> f k a) t1 s
 
   let rec union (s1: set) (s2: set) : set =
-    match D.choose s1 with
-    | None -> s2
-    | Some (k, v, xs) -> union xs (D.insert s2 k v)
+    fold insert s2 s1
 
   
   let rec intersect_construct (s1: set) (s2: set) (output: set) : set =
@@ -299,14 +299,12 @@ struct
       intersect_construct s1 s2 empty
 
   let remove (e: elt) (s: set) = (D.remove s e)
-  let member = D.member
+ 
   let choose (s: set) : (elt * set) option = 
     match D.choose s with
     | None -> None
     | Some (k, v, rest) -> Some (k, rest)
 
-  let fold (f: (elt -> 'a -> 'a)) (t1: 'a) (s: set) : 'a = 
-    D.fold (fun k v a-> f k a) t1 s
 
   let string_of_elt = D.string_of_key
   let string_of_set s = D.string_of_dict s
